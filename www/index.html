@@ -11,6 +11,17 @@
   <link rel="stylesheet" href="lib/onsenui/css/onsenui.css">
   <link rel="stylesheet" href="lib/onsenui/css/onsen-css-components.css">
   <link rel="stylesheet" href="css/style.css">
+  
+  <script src="js/lib/chess.min.js"></script>
+  <script src="js/lib/three.min.js"></script>
+  <script src="js/lib/TweenLite.min.js"></script>
+  <script src="js/lib/Detector.js"></script>
+  <script src="js/lib/OrbitControls.js"></script>
+  
+  <script src="js/Game.js"></script>
+  <script src="js/BoardView.js"></script>
+  
+  <script src="js/index.js"></script>
 
   <script>
     ons.ready(function() {
@@ -39,9 +50,10 @@
 			</div>
 		</ons-toolbar>
 		
-		<p style="text-align: center">
-			<ons-button>Click me!</ons-button>
-		</p>
+		<div id="renderer-parent">
+			
+		</div>
+		
 	</ons-page>
 </body>
 </html>
