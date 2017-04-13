@@ -2,7 +2,11 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 	
 	var ASSET_DIR = "assets/";
 	
-	var scene, renderer, camera, controls;
+	var scene, renderer, controls;
+	var cameraParentY, cameraParentX, camera;
+	
+	var CAMERA_MIN_DIST = 14;
+	var CAMERA_MAX_DIST = 45;
 	
 	var TILE_COUNT = 8;
 	
@@ -11,6 +15,8 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 	var textures = {};
 	var geometries = {};
 	var materials = {};
+	
+	var offsetX, offsetY;
 	
 	var internalBoard = [
 		[null, null, null, null, null, null, null, null],
@@ -23,11 +29,15 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 		[null, null, null, null, null, null, null, null]
 	];
 	
-	var OFFSET, STEP;
+	var TILE_OFFSET, STEP;
 	
 	var ROTATION_Y = {
 		w: radians(180),
 		b: 0
+	};
+	
+	var cameraState = {
+		isMoving: false
 	};
 	
 	function init() {
@@ -38,7 +48,7 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 		scene = createScene();
 		createCamera();
 		createRenderer();
-		controls = new THREE.OrbitControls(camera, renderer.domElement);
+		//controls = new THREE.OrbitControls(camera, renderer.domElement);
 		
 		manager.onLoad = onFinishedLoading;
 		objectLoader.load(ASSET_DIR + "scenes/board_and_pieces.json", function (loadedObj) {
@@ -87,17 +97,30 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 	}
 	
 	function createCamera() {
+		var boundingRect = domElement.getBoundingClientRect();
+		
+		cameraParentY = new THREE.Group();
+		cameraParentX = new THREE.Group();
+		
 		camera = new THREE.PerspectiveCamera(
-			36, window.innerWidth / window.innerHeight, 0.25, 100);
-		camera.position.set(0, 3, 0);
-		camera.rotation.set(0, -45, 0);
+			36, boundingRect.width / boundingRect.height, 0.25, 100);
+		camera.position.set(0, 0, 18);
+		
+		cameraParentY.add(cameraParentX);
+		cameraParentX.add(camera);
+		
+		cameraParentY.rotateY(radians(90));
+		cameraParentX.rotateX(radians(-45));
+		
+		scene.add(cameraParentY);
 	}
 	
 	function createRenderer() {
+		var boundingRect = domElement.getBoundingClientRect();
 		renderer = new THREE.WebGLRenderer();
 		renderer.shadowMap.enabled = false;
 		renderer.setPixelRatio(window.devicePixelRatio);
-		renderer.setSize(window.innerWidth, window.innerHeight);
+		renderer.setSize(boundingRect.width, boundingRect.height);
 		renderer.setClearColor(0x4286f4);
 	}
 	
@@ -120,13 +143,14 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 		bbox = board.boundingBox.clone();
 		center = bbox.getCenter();
 		
-		controls.target.set(center.x, center.y, center.z);
-		controls.update();
+		cameraParentY.position.set(center.x, center.y, center.z);
+		//controls.target.set(center.x, center.y, center.z);
+		//controls.update();
 		
 		width = bbox.getSize().x;
 		
 		STEP = width / TILE_COUNT;
-		OFFSET = STEP / 2;
+		TILE_OFFSET = STEP / 2;
 		
 	}
 	
@@ -161,10 +185,19 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 		onFinishLoadingCallback();
 	}
 	
-	function onWindowResize() {
-		camera.aspect = domElement.clientWidth / domElement.clientHeight;
+	function applyBounds(x, y, width, height) {
+		offsetX = x;
+		offsetY = y;
+		
+		camera.aspect = width / height;
 		camera.updateProjectionMatrix();
-		renderer.setSize(domElement.clientWidth, domElement.clientHeight);
+		renderer.setSize(width, height);
+	}
+	
+	function onWindowResize() {
+		var boundingRect = domElement.getBoundingClientRect();
+		applyBounds(boundingRect.x, boundingRect.y,
+				boundingRect.width, boundingRect.height);
 	}
 	
 	function update() {
@@ -189,9 +222,9 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 	
 	function boardToWorld(x, y) {
 		return {
-			x: (OFFSET + x * STEP),
+			x: (TILE_OFFSET + x * STEP),
 			y: 0,
-			z: -(OFFSET + y * STEP)
+			z: -(TILE_OFFSET + y * STEP)
 		};
 	}
 	
@@ -306,10 +339,62 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 			animateMove(move, callback);
 		},
 		applyCurrentPosition: function() {
-			
+			applyPosition(chess.board());
 		},
 		selectMoveForColor: function(color, onMoveSelectedCallback) {
 			
+		},
+		applyBounds: function(x, y, width, height) {
+			applyBounds(x, y, width, height);
+		},
+		moveCamera: function(dir) {
+			var rotation;
+			var lastValue;
+			
+			if (cameraState.isMoving) return;
+			
+			cameraState.isMoving = true;
+			rotation = {
+				value: 0
+			};
+			lastValue = 0;
+			
+			TweenLite.to(rotation, 1, {
+				value: 45,
+				onUpdate: function () {
+					var value = rotation.value - lastValue;
+					lastValue = rotation.value;
+					switch (dir) {
+						case "left":
+							cameraParentY.rotateY(-radians(value * 2));
+							break;
+						case "right":
+							cameraParentY.rotateY(radians(value * 2));
+							break;
+						case "up":
+							cameraParentX.rotateX(-radians(value));
+							break;
+						case "down":
+							cameraParentX.rotateX(radians(value));
+							break;
+						default:
+							break;
+					}
+				},
+				onComplete: function () {
+					cameraState.isMoving = false;
+				}
+			});
+		},
+		resetCamera: function() {
+			
+		},
+		dollyCamera: function(factor) {
+			var posZ = camera.position.z;
+			camera.position.setComponent(2, Math.max(CAMERA_MIN_DIST, Math.min(CAMERA_MAX_DIST, posZ / factor)));
+		},
+		getRendererDomElement: function() {
+			return renderer.domElement;
 		}
 	};
 };
