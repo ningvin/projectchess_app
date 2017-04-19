@@ -15,7 +15,6 @@ var CameraControls = function (board) {
 	}
 	
 	function onMouseWheel(event) {
-		console.log("mousewheel");
 		var scale;
 		
 		if (!enabled) return;

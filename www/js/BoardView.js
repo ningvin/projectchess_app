@@ -3,14 +3,38 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 	var ASSET_DIR = "assets/";
 	
 	var scene, renderer, controls;
+	var highlightScene, overlayScene;
+	var currentSelection = {
+		highlightMesh: null,
+		overlayMesh: null
+	};
 	var cameraParentY, cameraParentX, camera;
 	
 	var CAMERA_MIN_DIST = 14;
-	var CAMERA_MAX_DIST = 45;
+	var CAMERA_MAX_DIST = 55;
 	
 	var TILE_COUNT = 8;
 	
 	var MAX_HEIGHT = 4.5;
+	
+	
+	var HIGHLIGHT_MATERIAL = new THREE.ShaderMaterial({
+		uniforms: {
+			scale: { value: 0.2 },
+			color: { value: new THREE.Vector4(0.0, 1.0, 0.0, 1.0) }
+		},
+		vertexShader:
+			"uniform float scale;\n" +
+			"void main() {\n" +
+			"	vec4 offsetPos = vec4(normal * scale + position, 1.0);\n" +
+			"	gl_Position = projectionMatrix * modelViewMatrix * offsetPos;\n" +
+			"}",
+		fragmentShader:
+			"uniform vec4 color;\n" +
+			"void main() {\n" +
+			"	gl_FragColor = color;\n" +
+			"}"
+	});
 	
 	var textures = {};
 	var geometries = {};
@@ -29,6 +53,8 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 		[null, null, null, null, null, null, null, null]
 	];
 	
+	var highlights = [];
+	
 	var TILE_OFFSET, STEP;
 	
 	var ROTATION_Y = {
@@ -45,14 +71,14 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 			textureLoader = new THREE.TextureLoader(manager),
 			objectLoader = new THREE.ObjectLoader(manager);
 			
-		scene = createScene();
+		createScene();
 		createCamera();
 		createRenderer();
-		//controls = new THREE.OrbitControls(camera, renderer.domElement);
 		
 		manager.onLoad = onFinishedLoading;
 		objectLoader.load(ASSET_DIR + "scenes/board_and_pieces.json", function (loadedObj) {
 			extractGeometry(loadedObj);
+			createHighlights();
 		});
 		textureLoader.load(ASSET_DIR + "textures/chess_texture_base.png", function (texture) {
 			texture.minFilter = texture.magFilter = THREE.NearestFilter;
@@ -78,22 +104,31 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 	}
 	
 	function createScene() {
-		var s = new THREE.Scene(),
-			spotLight,
-			dirLight;
+		var spotLight, dirLight,
+			spotLight2, dirLight2;
 		
-		s.add(new THREE.AmbientLight(0x505050));
+		scene = new THREE.Scene();
+		highlightScene = new THREE.Scene();
+		overlayScene = new THREE.Scene();
+		
+		scene.add(new THREE.AmbientLight(0x505050));
 		spotLight = new THREE.SpotLight(0xffffff);
 		spotLight.angle = Math.PI / 5;
 		spotLight.penumbra = 0.2;
 		spotLight.position.set(8, 8, 8);
-		s.add(spotLight);
+		scene.add(spotLight);
 		dirLight = new THREE.DirectionalLight(0x55505a, 1);
 		dirLight.position.set(0, 3, 0);
 		dirLight.castShadow = false;
-		s.add(dirLight);
+		scene.add(dirLight);
 		
-		return s;
+		overlayScene.add(new THREE.AmbientLight(0x505050));
+		spotLight2 = spotLight.clone();
+		spotLight2.position = spotLight.position;
+		overlayScene.add(spotLight2);
+		dirLight2 = dirLight.clone();
+		dirLight2.position = dirLight.position;
+		overlayScene.add(dirLight2);
 	}
 	
 	function createCamera() {
@@ -122,19 +157,22 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 		renderer.setPixelRatio(window.devicePixelRatio);
 		renderer.setSize(boundingRect.width, boundingRect.height);
 		renderer.setClearColor(0x4286f4);
+		renderer.autoClear = false;
 	}
 	
 	function extractGeometry(loadedObj) {
 		var board = loadedObj.getObjectByName("Board").geometry,
 			bbox, center, width;
 		geometries.board = board;
-		geometries.frame = loadedObj.getObjectByName("Board_Frame").geometry;
-		geometries.p = loadedObj.getObjectByName("Pawn").geometry;
-		geometries.r = loadedObj.getObjectByName("Rook").geometry;
-		geometries.n = loadedObj.getObjectByName("Knight").geometry;
-		geometries.k = loadedObj.getObjectByName("King").geometry;
-		geometries.q = loadedObj.getObjectByName("Queen").geometry;
-		geometries.b = loadedObj.getObjectByName("Bishop").geometry;
+		geometries.frame = convertGeometry(loadedObj.getObjectByName("Board_Frame").geometry);
+		geometries.p = convertGeometry(loadedObj.getObjectByName("Pawn").geometry);
+		geometries.r = convertGeometry(loadedObj.getObjectByName("Rook").geometry);
+		geometries.n = convertGeometry(loadedObj.getObjectByName("Knight").geometry);
+		geometries.k = convertGeometry(loadedObj.getObjectByName("King").geometry);
+		geometries.q = convertGeometry(loadedObj.getObjectByName("Queen").geometry);
+		geometries.b = convertGeometry(loadedObj.getObjectByName("Bishop").geometry);
+		
+		console.log(geometries.n);
 		
 		if (board.boundingBox === null) {
 			board.computeBoundingBox();
@@ -144,14 +182,20 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 		center = bbox.getCenter();
 		
 		cameraParentY.position.set(center.x, center.y, center.z);
-		//controls.target.set(center.x, center.y, center.z);
-		//controls.update();
 		
 		width = bbox.getSize().x;
 		
 		STEP = width / TILE_COUNT;
 		TILE_OFFSET = STEP / 2;
 		
+	}
+	
+	function convertGeometry(bufferGeometry) {
+		var geometry = new THREE.Geometry().fromBufferGeometry(bufferGeometry);
+		geometry.computeFaceNormals();
+		geometry.mergeVertices();
+		geometry.computeVertexNormals();
+		return geometry;
 	}
 	
 	function createMaterials() {
@@ -162,11 +206,13 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 			map: textures.frame,
 			shading: THREE.FlatShading
 		});
-		materials.w = new THREE.MeshLambertMaterial({
-			color: 0xffffff
+		materials.w = new THREE.MeshPhongMaterial({
+			color: 0xffffff,
+			shading: THREE.FlatShading
 		});
-		materials.b = new THREE.MeshLambertMaterial({
-			color: 0x222222//0x000000
+		materials.b = new THREE.MeshPhongMaterial({
+			color: 0x222222,
+			shading: THREE.FlatShading
 		});
 	}
 	
@@ -176,6 +222,31 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 			
 		scene.add(board);
 		scene.add(frame);
+	}
+	
+	function createHighlights() {
+		var x, y, highlight, position;
+		var highlightGeometry = new THREE.PlaneGeometry(STEP, STEP);
+		var highlightMaterial = new THREE.MeshBasicMaterial({
+			color: 0x00ff00,
+			opacity: 0.5,
+			transparent: true
+		});
+		var euler = new THREE.Euler(-radians(90), 0, 0);
+		for (x = 0; x < TILE_COUNT; x++) {
+			highlights[x] = [];
+			for (y = 0; y < TILE_COUNT; y++) {
+				highlight = new THREE.Mesh(highlightGeometry, highlightMaterial);
+				highlights[x][y] = highlight;
+				position = boardToWorld(x, y);
+				highlight.position.x = position.x;
+				highlight.position.y = 0.1;
+				highlight.position.z = position.z;
+				highlight.setRotationFromEuler(euler);
+				highlight.visible = false;
+				scene.add(highlight);
+			}
+		}
 	}
 	
 	function onFinishedLoading() {
@@ -205,7 +276,12 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 	}
 	
 	function render() {
+		renderer.clear();
 		renderer.render(scene, camera);
+		renderer.clearDepth();
+		renderer.render(highlightScene, camera);
+		renderer.clearDepth();
+		renderer.render(overlayScene, camera);
 	}
 	
 	function onTick() {
@@ -215,7 +291,8 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 	
 	function sanToVector(san) {
 		return {
-			x: parseInt(san.charAt(1)) - 1,
+			//x: parseInt(san.charAt(1)) - 1,
+			x: 8 - parseInt(san.charAt(1)),
 			y: san.charCodeAt(0) - 97
 		}
 	}
@@ -235,7 +312,7 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 	function spawnPiece(piece, x, y) {
 		var mesh = new THREE.Mesh(geometries[piece.type], materials[piece.color]),
 			position = boardToWorld(x, y),
-			euler = new THREE.Euler(0, ROTATION_Y[piece.color], 0, "YXZ");
+			euler = new THREE.Euler(0, ROTATION_Y[piece.color], 0);
 		// Transform
 		mesh.position.x = position.x;
 		mesh.position.z = position.z;
@@ -265,6 +342,30 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 	
 	function setPieceAt(coords, piece) {
 		internalBoard[coords.x][coords.y] = piece;
+	}
+	
+	function selectMesh(mesh) {
+		
+		var highlightMesh, overlayMesh;
+		
+		if (currentSelection.highlightMesh !== null) {
+			highlightScene.remove(currentSelection.highlightMesh);
+			currentSelection.highlightMesh.dispose();
+		}
+		if (currentSelection.overlayMesh !== null) {
+			overlayScene.remove(currentSelection.overlayMesh);
+		}
+		
+		highlightMesh = mesh.clone();
+		highlightMesh.material = HIGHLIGHT_MATERIAL;
+		
+		overlayMesh = mesh.clone();
+		
+		currentSelection.highlightMesh = highlightMesh;
+		currentSelection.overlayMesh = overlayMesh;
+		
+		highlightScene.add(highlightMesh);
+		overlayScene.add(overlayMesh);
 	}
 	
 	function animateMove(move, callback) {
@@ -323,6 +424,33 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 		});
 	}
 	
+	function highlightPossibleMoves(square) {
+		var piece = chess.get(square);
+		var mesh = pieceAt(sanToVector(square));
+		var moves = chess.moves({
+			verbose: true,
+			square: square
+		});
+		var i;
+		
+		for (i = 0; i < moves.length; i++) {
+			highlightSquare(moves[i].to, true);
+		}
+		
+		selectMesh(mesh);
+	}
+	
+	function highlightSquare(square, value) {
+		var coords = sanToVector(square);
+		var mesh = highlights[coords.x][coords.y];
+		if (pieceAt(coords) !== null) {
+			mesh.material.color.set(0xff0000);
+		} else {
+			mesh.material.color.set(0x00ff00);
+		}
+		mesh.visible = value;
+	}
+	
 	if (typeof chess === "undefined" || chess === null) {
 		throw "Invalid parameter: chess is undefined or null";
 	}
@@ -343,6 +471,9 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 		},
 		selectMoveForColor: function(color, onMoveSelectedCallback) {
 			
+		},
+		_highlightPossibleMoves: function(square) {
+			highlightPossibleMoves(square);
 		},
 		applyBounds: function(x, y, width, height) {
 			applyBounds(x, y, width, height);
