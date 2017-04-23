@@ -4,11 +4,23 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 	
 	var scene, renderer, controls;
 	var highlightScene, overlayScene;
+	
 	var currentSelection = {
+		active: false,
+		coords: null,
 		highlightMesh: null,
 		overlayMesh: null
 	};
+	
+	var selectionMode = {
+		active: false,
+		color: null,
+		onSelectedCallback: null
+	}
+	
 	var cameraParentY, cameraParentX, camera;
+	
+	var board, raycaster;
 	
 	var CAMERA_MIN_DIST = 14;
 	var CAMERA_MAX_DIST = 55;
@@ -17,6 +29,11 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 	
 	var MAX_HEIGHT = 4.5;
 	
+	var COLOR = {
+		HIGHLIGHT_POSITIVE: new THREE.Vector4(0.0, 1.0, 0.0, 1.0),
+		HIGHLIGHT_NEUTRAL: new THREE.Vector4(1.0, 1.0, 0.0, 1.0),
+		HIGHLIGHT_NEGATIVE: new THREE.Vector4(1.0, 0.0, 0.0, 1.0)
+	};
 	
 	var HIGHLIGHT_MATERIAL = new THREE.ShaderMaterial({
 		uniforms: {
@@ -71,6 +88,8 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 			textureLoader = new THREE.TextureLoader(manager),
 			objectLoader = new THREE.ObjectLoader(manager);
 			
+		raycaster = new THREE.Raycaster();
+			
 		createScene();
 		createCamera();
 		createRenderer();
@@ -91,8 +110,75 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 		window.addEventListener('resize', onWindowResize, false);
 		
 		domElement.appendChild(renderer.domElement);
+		renderer.domElement.onclick = onClick;
 		
 		TweenLite.ticker.addEventListener("tick", onTick);
+	}
+	
+	function onClick(event) {
+		var intersects, point, coords,
+			piece, turnsPossible, color,
+			trans, san;
+		
+		if (!selectionMode.active) {
+			return;
+		}
+		
+		trans = transformMousePosition(event);
+		raycaster.setFromCamera(trans, camera);
+		intersects = raycaster.intersectObject(board, false);
+		
+		if (intersects.length > 0) {
+			point = intersects[0].point;
+			coords = worldToBoard(point.x, point.y, point.z);
+			
+			if (currentSelection.active && isFieldHighlighted(coords)) {
+				chooseMove(getMove(coords));
+				selectMesh(null);
+				return;
+			}
+			
+			piece = pieceAt(coords);
+			if (piece !== null) {
+				san = vectorToSan(coords);
+				if (isPieceSelectable(san)) {
+					turnsPossible = highlightPossibleMoves(san);
+					color = turnsPossible ? COLOR.HIGHLIGHT_POSITIVE : COLOR.HIGHLIGHT_NEUTRAL;
+					selectMesh(piece, coords, color);
+				} else {
+					selectMesh(null);
+				}
+			} else {
+				selectMesh(null);
+			}
+		}
+	}
+	
+	function transformMousePosition(event) {
+		var rect = renderer.domElement.getBoundingClientRect();
+		return {
+			x: ((event.clientX - rect.left) / (rect.width - rect.left)) * 2 - 1,
+			y: -(( event.clientY - rect.top) / (rect.bottom - rect.top)) * 2 + 1
+		};
+	}
+	
+	function isPieceSelectable(san) {
+		return selectionMode.active === true
+				&& chess.get(san).color === selectionMode.color;
+	}
+	
+	function isFieldHighlighted(coords) {
+		return highlights[coords.x][coords.y].mesh.visible;
+	}
+	
+	function chooseMove(move) {
+		selectionMode.active = false;
+		selectionMode.onSelectedCallback(move);
+		selectionMode.onSelectedCallback = null;
+	}
+	
+	function getMove(coords) {
+		return highlights[coords.x][coords.y].move;
 	}
 	
 	function radians(degrees) {
@@ -217,8 +303,8 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 	}
 	
 	function createBoard() {
-		var board = new THREE.Mesh(geometries.board, materials.board),
-			frame = new THREE.Mesh(geometries.frame, materials.frame);
+		var frame = new THREE.Mesh(geometries.frame, materials.frame);
+		board = new THREE.Mesh(geometries.board, materials.board);
 			
 		scene.add(board);
 		scene.add(frame);
@@ -236,11 +322,14 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 		for (x = 0; x < TILE_COUNT; x++) {
 			highlights[x] = [];
 			for (y = 0; y < TILE_COUNT; y++) {
-				highlight = new THREE.Mesh(highlightGeometry, highlightMaterial);
-				highlights[x][y] = highlight;
+				highlight = new THREE.Mesh(highlightGeometry, highlightMaterial.clone());
+				highlights[x][y] = {
+					mesh: highlight,
+					move: null
+				};
 				position = boardToWorld(x, y);
 				highlight.position.x = position.x;
-				highlight.position.y = 0.1;
+				highlight.position.y = 0.02;
 				highlight.position.z = position.z;
 				highlight.setRotationFromEuler(euler);
 				highlight.visible = false;
@@ -297,6 +386,10 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 		}
 	}
 	
+	function vectorToSan(vector) {
+		return String.fromCharCode(vector.y + 97) + (8 - vector.x);
+	}
+	
 	function boardToWorld(x, y) {
 		return {
 			x: (TILE_OFFSET + x * STEP),
@@ -306,7 +399,10 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 	}
 	
 	function worldToBoard(x, y, z) {
-		
+		return {
+			x: Math.floor(x / STEP),
+			y: Math.floor(-z / STEP)
+		}
 	}
 	
 	function spawnPiece(piece, x, y) {
@@ -344,28 +440,40 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 		internalBoard[coords.x][coords.y] = piece;
 	}
 	
-	function selectMesh(mesh) {
+	function selectMesh(mesh, coords, color) {
 		
 		var highlightMesh, overlayMesh;
 		
+		if (typeof color === "undefined" || color === null) {
+			color = COLOR.HIGHLIGHT_POSITIVE;
+		}
+		
 		if (currentSelection.highlightMesh !== null) {
 			highlightScene.remove(currentSelection.highlightMesh);
-			currentSelection.highlightMesh.dispose();
 		}
 		if (currentSelection.overlayMesh !== null) {
 			overlayScene.remove(currentSelection.overlayMesh);
 		}
 		
-		highlightMesh = mesh.clone();
-		highlightMesh.material = HIGHLIGHT_MATERIAL;
-		
-		overlayMesh = mesh.clone();
-		
-		currentSelection.highlightMesh = highlightMesh;
-		currentSelection.overlayMesh = overlayMesh;
-		
-		highlightScene.add(highlightMesh);
-		overlayScene.add(overlayMesh);
+		if (mesh !== null) {
+			highlightMesh = mesh.clone();
+			highlightMesh.material = HIGHLIGHT_MATERIAL;
+			highlightMesh.material.uniforms.color.value = color;
+			
+			overlayMesh = mesh.clone();
+			
+			currentSelection.highlightMesh = highlightMesh;
+			currentSelection.overlayMesh = overlayMesh;
+			
+			highlightScene.add(highlightMesh);
+			overlayScene.add(overlayMesh);
+			
+			currentSelection.coords = coords;
+			currentSelection.active = true;
+		} else {
+			clearHighlights();
+			currentSelection.active = false;
+		}
 	}
 	
 	function animateMove(move, callback) {
@@ -425,6 +533,7 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 	}
 	
 	function highlightPossibleMoves(square) {
+		clearHighlights();
 		var piece = chess.get(square);
 		var mesh = pieceAt(sanToVector(square));
 		var moves = chess.moves({
@@ -434,21 +543,32 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 		var i;
 		
 		for (i = 0; i < moves.length; i++) {
-			highlightSquare(moves[i].to, true);
+			highlightSquare(moves[i]);
 		}
 		
-		selectMesh(mesh);
+		return moves.length > 0;
 	}
 	
-	function highlightSquare(square, value) {
-		var coords = sanToVector(square);
-		var mesh = highlights[coords.x][coords.y];
+	function clearHighlights() {
+		var x, y;
+		for (x = 0; x < highlights.length; x++) {
+			for (y = 0; y < highlights[x].length; y++) {
+				highlights[x][y].mesh.visible = false;
+				highlights[x][y].move = null;
+			}
+		}
+	}
+	
+	function highlightSquare(move) {
+		var coords = sanToVector(move.to);
+		var mesh = highlights[coords.x][coords.y].mesh;
+		highlights[coords.x][coords.y].move = move;
 		if (pieceAt(coords) !== null) {
 			mesh.material.color.set(0xff0000);
 		} else {
 			mesh.material.color.set(0x00ff00);
 		}
-		mesh.visible = value;
+		mesh.visible = true;
 	}
 	
 	if (typeof chess === "undefined" || chess === null) {
@@ -470,10 +590,9 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 			applyPosition(chess.board());
 		},
 		selectMoveForColor: function(color, onMoveSelectedCallback) {
-			
-		},
-		_highlightPossibleMoves: function(square) {
-			highlightPossibleMoves(square);
+			selectionMode.color = color;
+			selectionMode.onSelectedCallback = onMoveSelectedCallback;
+			selectionMode.active = true;
 		},
 		applyBounds: function(x, y, width, height) {
 			applyBounds(x, y, width, height);

@@ -40,6 +40,7 @@ var CameraControls = function (board) {
 	
 	function onSwipe(event) {
 		if (!enabled) return;
+		//event.srcEvent.stopPropagation();
 		if (event.direction === Hammer.DIRECTION_LEFT) {
 			board.moveCamera(DIRECTIONS.RIGHT);
 		} else if (event.direction === Hammer.DIRECTION_RIGHT) {
@@ -76,7 +77,9 @@ var CameraControls = function (board) {
 	domElement = board.getRendererDomElement();
 	
 	domElement.addEventListener("wheel", onMouseWheel, false);
-	gestureManager = new Hammer.Manager(domElement);
+	gestureManager = new Hammer.Manager(domElement, {
+		//domEvents: true
+	});
 	gestureManager.add(new Hammer.Swipe(Hammer.DIRECTION_ALL));
 	gestureManager.add(new Hammer.Pinch());
 	gestureManager.on("swipe", onSwipe);
