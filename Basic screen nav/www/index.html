@@ -1,0 +1,133 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta http-equiv="Content-Security-Policy" content="default-src * data:; style-src * 'unsafe-inline'; script-src * 'unsafe-inline' 'unsafe-eval'">
+  <script src="components/loader.js"></script>
+  <script src="lib/onsenui/js/onsenui.min.js"></script>
+
+  <link rel="stylesheet" href="components/loader.css">
+  <link rel="stylesheet" href="lib/onsenui/css/onsenui.css">
+  <link rel="stylesheet" href="lib/onsenui/css/onsen-css-components.css">
+  <link rel="stylesheet" href="css/style.css">
+
+  <script>
+    // Page init event
+    document.addEventListener('init', function(event) {
+      var page = event.target;
+
+      if (page.matches('#main-menu')) {
+
+        page.querySelector('#loginbtn').onclick = function() {
+          document.querySelector('#navigator').pushPage('login.html');
+        };
+        
+        page.querySelector('#regbtn').onclick = function() {
+          document.querySelector('#navigator').pushPage('register.html');
+        };
+        
+      } else if (page.matches('#register-page')) {
+
+        page.querySelector('#cancel-btn').onclick = function() {
+          document.querySelector('#navigator').popPage();
+        };
+        
+      } else if (page.matches('#login-page')) {
+
+        page.querySelector('#cancel-btn').onclick = function() {
+          document.querySelector('#navigator').popPage();
+        };
+      }
+    });
+  </script>
+</head>
+
+<body>
+  <ons-navigator id="navigator" page="page2.html"></ons-navigator>
+
+    <!-------- MAIN SCREEN ------------->
+    
+    <ons-template id="page2.html">
+    <ons-page id="main-menu">
+      <ons-toolbar>
+        <div class="center" id="fixheader">
+            CHESS    
+        </div>
+      </ons-toolbar>
+
+      <div class="content" style="text-align: center">
+        <br />
+        <br />
+        <ons-button id="loginbtn">Log In</ons-button>
+        <ons-button id="regbtn">Register</ons-button>
+      </div>
+    </ons-page>
+  </ons-template>
+  
+  <!----------------- LOGIN PAGE ----------------------->
+  <ons-template id="login.html">
+    <ons-page id="login-page">
+      <ons-toolbar>
+        <div class="center" id="fixheader">
+            CHESS    
+        </div>
+      </ons-toolbar>
+      
+      <center>
+        <form action="/login.php">
+          <div class="container" id="login">
+            <label><b>Username</b></label>
+            <input type="text" placeholder="Enter username" name="username" required>
+        
+            <label><b>Password</b></label>
+            <input type="password" placeholder="Enter password" name="password" required>
+        
+            <input type="checkbox" checked="checked"> Keep me logged in
+            </br>
+            <div class="clearfix">
+              <ons-button id="cancel-btn">Cancel</ons-button>
+              <ons-button id="loginbtn">Log In</ons-button>
+            </div>
+          </div>
+        </form>
+    </center>
+    </ons-page>
+  </ons-template>
+  
+  <!-------------------- REGISTER PAGE ---------------->
+  <ons-template id="register.html">
+    <ons-page id="register-page">
+      <ons-toolbar>
+        <div class="center" id="fixheader">
+            CHESS    
+        </div>
+      </ons-toolbar>
+      
+      <center>
+        <form action="/signup.php">
+          <div class="container" id="register">
+            <label><b>Username</b></label>
+            <input type="text" placeholder="Enter username" name="username" required>
+        
+            <label><b>Password</b></label>
+            <input type="password" placeholder="Enter password" name="password" required>
+        
+            <label><b>Re-enter Password</b></label>
+            <input type="password" placeholder="Repeat password" name="repassword" required>
+            <input type="checkbox" checked="checked"> Keep me logged in
+            </br>
+            <div class="clearfix">
+              <ons-button id="cancel-btn">Cancel</ons-button>
+              <ons-button id="signupbtn">Sign Up</ons-button>
+            </div>
+          </div>
+        </form>
+    </center>
+    </ons-page>
+  </ons-template>
+
+ 
+</body>
+
+</html>
