@@ -1,0 +1,25 @@
+<ons-page id="login-page">
+    <ons-toolbar>
+        <div class="left"><ons-back-button>Back</ons-back-button></div>
+        <div class="center"></div>
+    </ons-toolbar>
+      
+    <center>
+        <form action="/login.php">
+            <div class="container" id="login">
+                <label><b>Username</b></label>
+                <input type="text" placeholder="Enter username" name="username" required>
+
+                <label><b>Password</b></label>
+                <input type="password" placeholder="Enter password" name="password" required>
+
+                <input type="checkbox" checked="checked"> Keep me logged in
+                </br>
+                <div class="clearfix">
+                    <ons-button id="cancel-btn">Cancel</ons-button>
+                    <ons-button id="loginbtn">Log In</ons-button>
+                </div>
+            </div>
+        </form>
+    </center>
+</ons-page>
