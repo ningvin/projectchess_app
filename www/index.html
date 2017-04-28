@@ -16,44 +16,18 @@
   <script src="js/lib/three.min.js"></script>
   <script src="js/lib/TweenLite.min.js"></script>
   <script src="js/lib/Detector.js"></script>
+  <!--
   <script src="js/lib/OrbitControls.js"></script>
+  -->
+  <script src="js/lib/hammer.min.js"></script>
   
   <script src="js/Game.js"></script>
   <script src="js/BoardView.js"></script>
+  <script src="js/CameraControls.js"></script>
   
   <script src="js/index.js"></script>
-
-  <script>
-    ons.ready(function() {
-      console.log("Onsen UI is ready!");
-    });
-	
-	document.addEventListener('init', function(event) {
-		var page = event.target;
-		if (page.matches('#main_page')) {
-			page.querySelector('ons-toolbar .center').innerHTML = 'Hello World';
-			page.querySelector('ons-button').onclick = function() {
-				ons.notification.alert('Hello world!');
-			};
-		}
-	});
-  </script>
 </head>
 <body>
-	<ons-page id="main_page">
-		<ons-toolbar>
-			<div class="center"></div>
-			<div class="right">
-				<ons-toolbar-button>
-					<ons-icon icon="ion-navicon, material:md-menu" />
-				</ons-toolbar-button>
-			</div>
-		</ons-toolbar>
-		
-		<div id="renderer-parent">
-			
-		</div>
-		
-	</ons-page>
+	<ons-navigator id="navigator" page="pages/main_menu.html"></ons-navigator>
 </body>
 </html>
