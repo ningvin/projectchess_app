@@ -5,21 +5,19 @@
     </ons-toolbar>
       
     <center>
-        <form action="/login.php">
-            <div class="container" id="login">
-                <label><b>Username</b></label>
-                <input type="text" placeholder="Enter username" name="username" required>
+        <div class="container" id="login">
+            <label><b>Username</b></label>
+            <input id="username" type="text" placeholder="Enter username" name="username" />
 
-                <label><b>Password</b></label>
-                <input type="password" placeholder="Enter password" name="password" required>
+            <label><b>Password</b></label>
+            <input id="password" type="password" placeholder="Enter password" name="password" />
 
-                <input type="checkbox" checked="checked"> Keep me logged in
-                </br>
-                <div class="clearfix">
-                    <ons-button id="cancel-btn">Cancel</ons-button>
-                    <ons-button id="loginbtn">Log In</ons-button>
-                </div>
+            <input type="checkbox" checked="checked" /> Keep me logged in
+            <br />
+            <div class="clearfix">
+                <ons-button id="cancel-btn">Cancel</ons-button>
+                <ons-button id="loginbtn">Log In</ons-button>
             </div>
-        </form>
+        </div>
     </center>
 </ons-page>
