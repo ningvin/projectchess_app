@@ -18,6 +18,9 @@ function App() {
     var _user;
     var _invited;
     
+    var _isHost;
+    var _opponent;
+    
     var _receivedInvites = [];
     
     var _state = STATES.INITAL;
@@ -29,6 +32,7 @@ function App() {
         'game_invite_withdraw': [],
         'game_response': [],
         'chat': [],
+        'move': [],
         'disconnect': [],
         'game_launch': [],
         'game_launch_cancel': [],
@@ -124,11 +128,17 @@ function App() {
         });
         
         s.on('game_launch', function(msg) {
+            _opponent = msg.id;
+            _isHost = false;
             _callListeners('game_launch', msg);
         });
         
         s.on('game_response', function(msg) {
             _callListeners('game_response', msg);
+        });
+        
+        s.on('move', function(msg) {
+            _callListeners('move', msg);
         });
     }
     
@@ -224,9 +234,22 @@ function App() {
         
         launchGame: function() {
             console.log(_invited);
+            _opponent = _invited;
+            _isHost = true;
             _socket.emit('game_launch', {
                 id: _invited
             });
+        },
+        
+        sendMove: function(move) {
+            _socket.emit('move', {
+                id: _opponent,
+                move: move
+            });
+        },
+        
+        isHost: function() {
+            return _isHost;
         },
         
         queryPlayersInLobby: function(callback) {

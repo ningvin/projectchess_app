@@ -110,34 +110,38 @@
         
         'game-page': (function() {
             
+            var _game;
+            
             return {
                 init: function(page) {
                     page.querySelector('ons-toolbar .center').innerHTML = 'Game';
                     var rendererParent = document.getElementById("renderer_parent");
-                        
-                    var game = new Chess();
-                    var board = new BoardView(game, rendererParent, startGame);
-                    var currentColor = 'w';
                     
-                    function startGame() {
-                        board.selectMoveForColor(currentColor, performMove);
+                    var settings = {
+                        rendererParent: rendererParent
+                    };
+                    if (app.isHost()) {
+                        settings.players = {
+                            white: {
+                                type: 'local'
+                            },
+                            black: {
+                                type: 'network'
+                            }
+                        };
+                    } else {
+                        settings.players = {
+                            white: {
+                                type: 'network'
+                            },
+                            black: {
+                                type: 'local'
+                            }
+                        };
                     }
                     
-                    function performMove(move) {
-                        game.move(move);
-                        board.animateMove(move, onFinishedAnimating);
-                    }
-                    
-                    function onFinishedAnimating() {
-                        nextColor();
-                        board.selectMoveForColor(currentColor, performMove);
-                    }
-                    
-                    function nextColor() {
-                        currentColor = (currentColor === 'w') ? 'b' : 'w';
-                    }
-                    
-                    var camControls = new CameraControls(board, rendererParent);
+                    _game = new Game(app, settings);
+                    _game.run();
                 },
                 
                 show: function(page) {
@@ -149,7 +153,8 @@
                 },
                 
                 destroy: function(page) {
-                    
+                    _game.dispose();
+                    _game = null;
                 }
             }
             
