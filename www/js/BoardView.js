@@ -1,3 +1,10 @@
+/**
+ * 3D View of the Board
+ * @constructor
+ * @param {Chess} chess
+ * @param {Object} domElement - DOM element to append the renderer to
+ * @param {finishedCallback} onFinishLoadingCallback - Called after loading finished
+ */
 var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 	
 	var ASSET_DIR = "assets/";
@@ -583,20 +590,50 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 	init();
 	
 	return {
+        /**
+         * Animate the given move
+         * @param {Object} move
+         * @param {finishedCallback} callback
+         */
 		animateMove: function(move, callback) {
 			animateMove(move, callback);
 		},
+        
+        /**
+         * Synchronize the BoardView with the current
+         * state of the chess object
+         */
 		applyCurrentPosition: function() {
 			applyPosition(chess.board());
 		},
+        
+        /**
+         * Let the user interactively select the next move for
+         * the pieces of the given color.
+         * @param {string} color
+         * @param {moveSelecetedCallback} onMoveSelectedCallback
+         */
 		selectMoveForColor: function(color, onMoveSelectedCallback) {
 			selectionMode.color = color;
 			selectionMode.onSelectedCallback = onMoveSelectedCallback;
 			selectionMode.active = true;
 		},
+        
+        /**
+         * Apply the given bounds to the renderer
+         * @param {number} x
+         * @param {number} y
+         * @param {number} width
+         * @param {number} height
+         */
 		applyBounds: function(x, y, width, height) {
 			applyBounds(x, y, width, height);
 		},
+        
+        /**
+         * Rotate the camera to the next spot in the given direction
+         * @param {DIRECTIONS} dir - The direction to move the camera
+         */
 		moveCamera: function(dir) {
 			var rotation;
 			var lastValue;
@@ -636,15 +673,41 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 				}
 			});
 		},
+        
+        /**
+         * Reset the camera to the default position for the
+         * currently active color
+         */
 		resetCamera: function() {
 			
 		},
+        
+        /**
+         * Dolly the camera by the given factor
+         * @param {number} factor
+         */
 		dollyCamera: function(factor) {
 			var posZ = camera.position.z;
 			camera.position.setComponent(2, Math.max(CAMERA_MIN_DIST, Math.min(CAMERA_MAX_DIST, posZ / factor)));
 		},
+        
+        /**
+         * Get a reference to the renderer's DOM element
+         * @return {Object} reference
+         */
 		getRendererDomElement: function() {
 			return renderer.domElement;
 		}
 	};
 };
+
+/**
+ * Called after a previously triggered process finished
+ * @callback finishedCallback
+ */
+ 
+/**
+ * Called after a chess move has been selected
+ * @callback moveSelecetedCallback
+ * @param {Object} move - The selected move, a valid chess.js move object
+ */

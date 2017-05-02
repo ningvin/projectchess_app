@@ -1,6 +1,11 @@
 (function() {
     var app;
     
+    /*
+     * Controllers for the different pages. Each controller has to
+     * expose the functions 'init', 'show', 'hide' and 'destroy'
+     * corresponding to the Onsen UI lifecycle events
+     */
     var pages = {
         
         'main-menu': (function() {
@@ -296,19 +301,20 @@
         })(),
     };
 
+    /*
+     * Called when Onsen UI is ready
+     */
     ons.ready(function() {
         app = new App();
     });
     
     /*
-    document.addEventListener('init', function(event) {
-        var page = event.target;
-        if (pageInitializers.hasOwnProperty(page.id)) {
-            pageInitializers[page.id](page);
-        }
-    });
-    */
+     * Handle Onsen UI page lifecycle
+     */
     
+    /*
+     * Called after a page was attached to the DOM
+     */
     document.addEventListener('init', function(event) {
         var page = event.target;
         if (pages.hasOwnProperty(page.id) && pages[page.id].init != null) {
@@ -316,6 +322,9 @@
         }
     });
     
+    /*
+     * Called before a page is destroyed and removed from the DOM
+     */
     document.addEventListener('show', function(event) {
         var page = event.target;
         if (pages.hasOwnProperty(page.id) && pages[page.id].show != null) {
@@ -323,6 +332,9 @@
         }
     });
     
+    /*
+     * Called when a page comes into view
+     */
     document.addEventListener('hide', function(event) {
         var page = event.target;
         if (pages.hasOwnProperty(page.id) && pages[page.id].hide != null) {
@@ -330,6 +342,9 @@
         }
     });
     
+    /*
+     * Called when a page disappears from view
+     */
     document.addEventListener('destroy', function(event) {
         var page = event.target;
         if (pages.hasOwnProperty(page.id) && pages[page.id].destroy != null) {

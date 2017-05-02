@@ -1,3 +1,10 @@
+/**
+ * Represents a game of chess. A Game keeps track of its
+ * state and enforces the order in which players make moves.
+ * @constructor
+ * @param {App} app 
+ * @param {Object} settings
+ */
 var Game = function(app, settings) {
     
     var _players = [];
@@ -43,6 +50,10 @@ var Game = function(app, settings) {
     };
     
     return {
+        /**
+         * Initialize and run the game. Players will select moves alternately
+         * and the BoardView will be updated accordingly.
+         */
         run: function() {
             var parent = settings.rendererParent;
             _chess = new Chess();
@@ -50,6 +61,9 @@ var Game = function(app, settings) {
             _camControls = new CameraControls(_board, parent);
         },
         
+        /**
+         * Remove any registered event listeners.
+         */
         dispose: function() {
             var i;
             for (i = 0; i < _players.length; i++) {
