@@ -1,4 +1,13 @@
+/**
+ * Holds the state of the application and handles
+ * communication with the master server.
+ * @constructor
+ */
 function App() {
+    
+    //=====================================
+    // Constants ==========================
+    //=====================================
     
     var REST_URL = 'http://127.0.0.1:8080/';
     
@@ -13,6 +22,10 @@ function App() {
         GAME:               7,
         GAME_RESULTS:       8
     };
+    
+    //=====================================
+    // Member variables ===================
+    //=====================================
     
     var _socket;
     var _user;
@@ -38,6 +51,10 @@ function App() {
         'game_launch_cancel': [],
         'game_start': []
     };
+    
+    //=====================================
+    // Member functions ===================
+    //=====================================
     
     function _callListeners(id, arg) {
         var i, l = _listeners[id];
@@ -144,6 +161,11 @@ function App() {
     
     return {
         
+        /**
+         * Trigger login
+         * @param {Object} data - Credentials to use for the login
+         * @param {statusCallback} callback
+         */
         login: function(data, callback) {
             var token, data;
             
@@ -167,12 +189,21 @@ function App() {
             });
         },
         
+        /**
+         * Trigger logout
+         * @param {statusCallback} callback
+         */
         logout: function(callback) {
             _socket.disconnect();
             _user = null;
             _state = STATES.INITIAL;
         },
         
+        /**
+         * Trigger registration of a new user
+         * @param {Object} data - 
+         * @param {statusCallback} callback
+         */
         register: function(data, callback) {
             post(REST_URL + 'register', data, function(res) {
                 if (res.status == 200) {
@@ -183,6 +214,10 @@ function App() {
             });
         },
         
+        /**
+         * Join the lobby.
+         * Requires the user to be logged in
+         */
         joinLobby: function() {
             _socket.emit('join_lobby', {
                 id: _user.id
@@ -191,6 +226,10 @@ function App() {
             _state = STATES.LOBBY;
         },
         
+        /**
+         * Leave the lobby.
+         * Requires the user to be logged in
+         */
         leaveLobby: function() {
             _socket.emit('leave_lobby', {
                 id: _user.id
@@ -199,6 +238,11 @@ function App() {
             _state = STATES.LOGGED_IN;
         },
         
+        /**
+         * Invite another user to a game.
+         * Requires the user to be logged in
+         * @param {string} opponent - Id of the user to invite
+         */
         sendInvite: function(opponent) {
             _invited = opponent;
             _socket.emit('game_invite', {
@@ -206,6 +250,10 @@ function App() {
             });
         },
         
+        /**
+         * Withdraw the invite previously sent to another user.
+         * Requires the user to be logged in
+         */
         cancelInvite: function() {
             _socket.emit('game_invite_withdraw', {
                 id: _invited
@@ -213,6 +261,11 @@ function App() {
             invited = null;
         },
         
+        /**
+         * Accept the invite of a another user.
+         * Requires the user to be logged in
+         * @param {string} opponent - Id of the user that sent the invite
+         */
         acceptInvite: function(opponent) {
             _socket.emit('game_response', {
                 id: opponent,
@@ -220,6 +273,11 @@ function App() {
             });
         },
         
+        /**
+         * Decline the invite of a another user.
+         * Requires the user to be logged in
+         * @param {string} opponent - Id of the user that sent the invite
+         */
         declineInvite: function(opponent) {
             var i = _receivedInvites.indexOf(opponent) != -1;
             if (i != -1) {
@@ -232,6 +290,12 @@ function App() {
             });
         },
         
+        /**
+         * Tell the opponent to launch the game.
+         * This function is called by the user that initially sent the invite,
+         * after the opponent accepted it.
+         * Requires the user to be logged in
+         */
         launchGame: function() {
             console.log(_invited);
             _opponent = _invited;
@@ -241,6 +305,10 @@ function App() {
             });
         },
         
+        /**
+         * Transmit a chess move to the opponent.
+         * @param {Object} move - Move object directly processable by chess.js
+         */
         sendMove: function(move) {
             _socket.emit('move', {
                 id: _opponent,
@@ -248,10 +316,18 @@ function App() {
             });
         },
         
+        /**
+         * Check if this instance initially sent the invite (aka 'is the host').
+         * @return {boolean} - true if this instance is the host, otherwise false
+         */
         isHost: function() {
             return _isHost;
         },
         
+        /**
+         * Query all user in the lobby.
+         * @param {App~playerListCallback} callback
+         */
         queryPlayersInLobby: function(callback) {
             var data;
             get(REST_URL + 'api/users?token=' + _user.token, function(res) {
@@ -264,16 +340,31 @@ function App() {
             });
         },
         
+        /**
+         * 
+         */
         createGame: function() {
             
         },
         
+        /**
+         * Register an event listener to an event fired by the App
+         * identified by its Id.
+         * @param {string} id - The event's id
+         * @param {eventListenerCallback} listener
+         */
         on: function(id, listener) {
             if (_listeners.hasOwnProperty(id)) {
                 _listeners[id].push(listener);
             }
         },
         
+        /**
+         * Remove an event listener from an event fired by the App
+         * identified by its Id.
+         * @param {string} id - The event's id
+         * @param {eventListenerCallback} listener
+         */
         removeListener: function(id, listener) {
             var idListeners = _listeners[id];
             if (idListeners != null) {
@@ -283,3 +374,22 @@ function App() {
         
     }
 }
+
+/**
+ * Callback receiving an array of user ids
+ * @callback App~playerListCallback
+ * @param {string[]} userIds
+ */
+
+/**
+ * Callback receiving the status (success or failure)
+ * of a previously triggered operation.
+ * @callback statusCallback
+ * @param {boolean} success
+ */
+ 
+/**
+ * Eventlistener function.
+ * @callback eventListenerCallback
+ * @param {Object} data - Data passed by this event
+ */
