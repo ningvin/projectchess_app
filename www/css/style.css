@@ -23,6 +23,14 @@ body
     font-size: 20px;
 }
 
+#chessicon
+{
+	width:150px;
+	height:150px;
+	margin-top:50px;
+	margin-left:50px;
+	margin-right:50px;
+}
 #register
 {
     background-color: #e6f2ff;
