@@ -31,9 +31,11 @@ body
 	margin-left:50px;
 	margin-right:50px;
 }
-#register
+#register, #login
 {
+	margin-top:20px;
     background-color: #e6f2ff;
+	width:30%;
 }
 
 #fixheader
