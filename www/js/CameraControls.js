@@ -1,3 +1,8 @@
+/**
+ * Handles user input to change the camera angle.
+ * @constructor
+ * @param {BoardView} board
+ */
 var CameraControls = function (board) {
 	
 	var DOLLY_SPEED = 1;
@@ -7,7 +12,18 @@ var CameraControls = function (board) {
 	var domElement;
 	var oldScale = 1;
 	
+    /**
+     * Enum for key codes
+     * @readonly
+     * @enum {number}
+     */
 	var KEYS = { LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40 };
+    
+    /**
+     * Enum for camera directions
+     * @readonly
+     * @enum {string}
+     */
 	var DIRECTIONS = { LEFT: "left", RIGHT: "right", UP: "up", DOWN: "down" };
 	
 	function getDollyScale() {
@@ -88,9 +104,16 @@ var CameraControls = function (board) {
 	window.addEventListener("keydown", onKeyDown, false);
 	
 	return {
+        /**
+         * Enable or disable the CameraControls
+         * @param {boolean} _enabled true to enable, false to disable
+         */
 		setEnabled: function (_enabled) {
 			enabled = _enabled;
 		},
+        /**
+         * @return {boolean} true if enabled, false if disabled
+         */
 		isEnabled: function () {
 			return enabled;
 		}
