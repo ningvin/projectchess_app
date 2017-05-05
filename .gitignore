@@ -1,6 +1,7 @@
 # Ignore platforms and plugins folders
 platforms/
 plugins/
+node_modules/
 
 # Ignore custom bat
 launch_emulator.bat
