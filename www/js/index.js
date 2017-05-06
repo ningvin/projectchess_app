@@ -38,6 +38,7 @@
             
         })(),
         
+        
         'register-page': (function() {
             
             return {
@@ -80,7 +81,7 @@
                             dialog.hide();
                             if (result) {
                                 document.querySelector('#navigator')
-                                        .pushPage('pages/lobby.html');
+                                        .pushPage('pages/select_mode.html');
                             } else {
                                 ons.notification.alert('Login failed!');
                             }
@@ -164,7 +165,37 @@
             }
             
         })(),
-        
+
+        'select-mode-page':(function(){
+           
+            return {
+                init: function(page) {
+                    page.querySelector('#real-match-btn').onclick = function() {
+                        document.querySelector('#navigator')
+                                .pushPage('pages/lobby.html');
+                    };
+
+                    page.querySelector('#practice-match-btn').onclick = function() {
+                        document.querySelector('#navigator')
+                                .pushPage('pages/lobby.html');
+                    };
+                },
+                
+                show: function(page) {
+                    
+                },
+                
+                hide: function(page) {
+                    
+                },
+                
+                destroy: function(page) {
+                    
+                }
+            }
+            
+        })(),
+
         'lobby-page': (function() {
             
             var _dialog;
