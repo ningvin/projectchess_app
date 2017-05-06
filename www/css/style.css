@@ -17,6 +17,21 @@
 	pointer-events: auto;
 }
 
+#header
+{
+	background-color: #1284ff;
+}
+
+.center
+{
+	color:#fff;
+	text-align:center;
+}
+
+.content
+{
+	text-align:center;
+}
 
 #chessicon
 {
@@ -33,20 +48,10 @@
 	width:30%;
 }
 
-#fixheader
+#loginbtn, #regbtn
 {
-    background-color: #6699ff;
-    font-family: verdana;
-    font-weight: bold;
+	width:150px;
 }
-
-#menuheader
-{
-    background-color: #6699ff;
-    font-family: verdana;
-    font-weight: bold;
-}
-
 /* Full-width input fields */
 input[type=text], input[type=password] {
     width: 100%;
@@ -59,7 +64,7 @@ input[type=text], input[type=password] {
 
 /* Set a style for all buttons */
 button {
-    background-color: #99ccff;
+    background-color: #fff;
     color: white;
     padding: 14px 20px;
     margin: 8px 0;
@@ -68,14 +73,15 @@ button {
     width: 100%;
 }
 
+
 /* Extra styles for the cancel button */
-#cncl-button {
+.cancel-btn {
     padding: 14px 20px;
     background-color: #6699ff;
 }
 
 /* Float cancel and signup buttons and add an equal width */
-.cancelbtn,.signupbtn {
+.cancel-btn,.signupbtn {
     float: left;
     width: 100%;
 }
@@ -94,7 +100,7 @@ button {
 
 /* Change styles for cancel button and signup button on extra small screens */
 @media screen and (max-width: 300px) {
-    .cancelbtn, .signupbtn {
+    .cancel-btn, .signupbtn {
         width: 100%;
     }
 }
