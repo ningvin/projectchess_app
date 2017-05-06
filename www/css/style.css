@@ -1,2 +1,105 @@
-/**/
+/*Holds the 3D Board View*/
+#renderer_parent {
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
 
+/*Holds the overlay UI elements for the 3D Board View*/
+.ui_element_container {
+	position: absolute;
+	width: 100%;
+	pointer-events: none;
+}
+
+/*Marks an overlay UI elements*/
+.ui_element {
+	pointer-events: auto;
+}
+
+body 
+{
+    font-family: 'Amiko';
+    font-size: 20px;
+}
+
+#chessicon
+{
+	width:150px;
+	height:150px;
+	margin-top:50px;
+	margin-left:50px;
+	margin-right:50px;
+}
+#register, #login
+{
+	margin-top:20px;
+    background-color: #e6f2ff;
+	width:30%;
+}
+
+#fixheader
+{
+    background-color: #6699ff;
+    font-family: verdana;
+    font-weight: bold;
+}
+
+#menuheader
+{
+    background-color: #6699ff;
+    font-family: verdana;
+    font-weight: bold;
+}
+
+/* Full-width input fields */
+input[type=text], input[type=password] {
+    width: 100%;
+    padding: 8px 20px;
+    margin: 8px 0;
+    display: inline-block;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+
+/* Set a style for all buttons */
+button {
+    background-color: #99ccff;
+    color: white;
+    padding: 14px 20px;
+    margin: 8px 0;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+}
+
+/* Extra styles for the cancel button */
+#cncl-button {
+    padding: 14px 20px;
+    background-color: #6699ff;
+}
+
+/* Float cancel and signup buttons and add an equal width */
+.cancelbtn,.signupbtn {
+    float: left;
+    width: 100%;
+}
+
+/* Add padding to container elements */
+.container {
+    padding: 50px;
+}
+
+/* Clear floats */
+.clearfix::after {
+    content: "";
+    clear: both;
+    display: table;
+}
+
+/* Change styles for cancel button and signup button on extra small screens */
+@media screen and (max-width: 300px) {
+    .cancelbtn, .signupbtn {
+        width: 100%;
+    }
+}

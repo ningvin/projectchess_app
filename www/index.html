@@ -3,7 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <!--
   <meta http-equiv="Content-Security-Policy" content="default-src * data:; style-src * 'unsafe-inline'; script-src * 'unsafe-inline' 'unsafe-eval'">
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src * data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; media-src *; img-src *">
   <script src="components/loader.js"></script>
   <script src="lib/onsenui/js/onsenui.min.js"></script>
 
@@ -11,37 +14,28 @@
   <link rel="stylesheet" href="lib/onsenui/css/onsenui.css">
   <link rel="stylesheet" href="lib/onsenui/css/onsen-css-components.css">
   <link rel="stylesheet" href="css/style.css">
-
-  <script>
-    ons.ready(function() {
-      console.log("Onsen UI is ready!");
-    });
-	
-	document.addEventListener('init', function(event) {
-		var page = event.target;
-		if (page.matches('#main_page')) {
-			page.querySelector('ons-toolbar .center').innerHTML = 'Hello World';
-			page.querySelector('ons-button').onclick = function() {
-				ons.notification.alert('Hello world!');
-			};
-		}
-	});
-  </script>
+  
+  <script src="js/lib/chess.min.js"></script>
+  <script src="js/lib/three.min.js"></script>
+  <script src="js/lib/TweenLite.min.js"></script>
+  <script src="js/lib/Detector.js"></script>
+  <!--
+  <script src="js/lib/OrbitControls.js"></script>
+  -->
+  <script src="js/lib/hammer.min.js"></script>
+  <script src="js/lib/socket.io.min.js"></script>
+  
+  <script src="js/Game.js"></script>
+  <script src="js/BoardView.js"></script>
+  <script src="js/CameraControls.js"></script>
+  <script src="js/App.js"></script>
+  
+  <script src="js/players/LocalPlayer.js"></script>
+  <script src="js/players/NetworkPlayer.js"></script>
+  
+  <script src="js/index.js"></script>
 </head>
 <body>
-	<ons-page id="main_page">
-		<ons-toolbar>
-			<div class="center"></div>
-			<div class="right">
-				<ons-toolbar-button>
-					<ons-icon icon="ion-navicon, material:md-menu" />
-				</ons-toolbar-button>
-			</div>
-		</ons-toolbar>
-		
-		<p style="text-align: center">
-			<ons-button>Click me!</ons-button>
-		</p>
-	</ons-page>
+	<ons-navigator id="navigator" page="pages/main_menu.html"></ons-navigator>
 </body>
 </html>
