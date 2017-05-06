@@ -7,27 +7,11 @@
  */
 var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 	
+    //==============================
+    // Constants ===================
+    //==============================
+    
 	var ASSET_DIR = "assets/";
-	
-	var scene, renderer, controls;
-	var highlightScene, overlayScene;
-	
-	var currentSelection = {
-		active: false,
-		coords: null,
-		highlightMesh: null,
-		overlayMesh: null
-	};
-	
-	var selectionMode = {
-		active: false,
-		color: null,
-		onSelectedCallback: null
-	}
-	
-	var cameraParentY, cameraParentX, camera;
-	
-	var board, raycaster;
 	
 	var CAMERA_MIN_DIST = 14;
 	var CAMERA_MAX_DIST = 55;
@@ -40,6 +24,13 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 		HIGHLIGHT_POSITIVE: new THREE.Vector4(0.0, 1.0, 0.0, 1.0),
 		HIGHLIGHT_NEUTRAL: new THREE.Vector4(1.0, 1.0, 0.0, 1.0),
 		HIGHLIGHT_NEGATIVE: new THREE.Vector4(1.0, 0.0, 0.0, 1.0)
+	};
+	
+	var TILE_OFFSET, STEP;
+	
+	var ROTATION_Y = {
+		w: _radians(180),
+		b: 0
 	};
 	
 	var HIGHLIGHT_MATERIAL = new THREE.ShaderMaterial({
@@ -59,14 +50,38 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 			"	gl_FragColor = color;\n" +
 			"}"
 	});
+    
+    //==============================
+    // Variables ===================
+    //==============================
 	
-	var textures = {};
-	var geometries = {};
-	var materials = {};
+	var _scene, _renderer, _controls;
+	var _highlightScene, _overlayScene;
 	
-	var offsetX, offsetY;
+	var _currentSelection = {
+		active: false,
+		coords: null,
+		highlightMesh: null,
+		overlayMesh: null
+	};
 	
-	var internalBoard = [
+	var _selectionMode = {
+		active: false,
+		color: null,
+		onSelectedCallback: null
+	}
+	
+	var _cameraParentY, _cameraParentX, _camera;
+	
+	var _board, raycaster;
+	
+	var _textures = {};
+	var _geometries = {};
+	var _materials = {};
+	
+	var _offsetX, _offsetY;
+	
+	var _internalBoard = [
 		[null, null, null, null, null, null, null, null],
 		[null, null, null, null, null, null, null, null],
 		[null, null, null, null, null, null, null, null],
@@ -77,195 +92,118 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 		[null, null, null, null, null, null, null, null]
 	];
 	
-	var highlights = [];
+	var _highlights = [];
 	
-	var TILE_OFFSET, STEP;
-	
-	var ROTATION_Y = {
-		w: radians(180),
-		b: 0
-	};
-	
-	var cameraState = {
+	var _cameraState = {
 		isMoving: false
 	};
+    
+    //==============================
+    // Initialization ==============
+    //==============================
 	
-	function init() {
+	function _init() {
 		var manager = new THREE.LoadingManager(),
 			textureLoader = new THREE.TextureLoader(manager),
 			objectLoader = new THREE.ObjectLoader(manager);
 			
 		raycaster = new THREE.Raycaster();
 			
-		createScene();
-		createCamera();
-		createRenderer();
+		_createScene();
+		_createCamera();
+		_createRenderer();
 		
-		manager.onLoad = onFinishedLoading;
+		manager.onLoad = _onFinishedLoading;
 		objectLoader.load(ASSET_DIR + "scenes/board_and_pieces.json", function (loadedObj) {
-			extractGeometry(loadedObj);
-			createHighlights();
+			_extractGeometry(loadedObj);
+			_createHighlights();
 		});
 		textureLoader.load(ASSET_DIR + "textures/chess_texture_base.png", function (texture) {
 			texture.minFilter = texture.magFilter = THREE.NearestFilter;
-			textures.board = texture;
+			_textures.board = texture;
 		});
 		textureLoader.load(ASSET_DIR + "textures/wood_texture.png", function (texture) {
-			textures.frame = texture;
+			_textures.frame = texture;
 		});
 		
-		window.addEventListener('resize', onWindowResize, false);
+		window.addEventListener('resize', _onWindowResize, false);
 		
-		domElement.appendChild(renderer.domElement);
-		renderer.domElement.onclick = onClick;
+		domElement.appendChild(_renderer.domElement);
+		_renderer.domElement.onclick = _onClick;
 		
-		TweenLite.ticker.addEventListener("tick", onTick);
+		TweenLite.ticker.addEventListener("tick", _onTick);
 	}
-	
-	function onClick(event) {
-		var intersects, point, coords,
-			piece, turnsPossible, color,
-			trans, san;
-		
-		if (!selectionMode.active) {
-			return;
-		}
-		
-		trans = transformMousePosition(event);
-		raycaster.setFromCamera(trans, camera);
-		intersects = raycaster.intersectObject(board, false);
-		
-		if (intersects.length > 0) {
-			point = intersects[0].point;
-			coords = worldToBoard(point.x, point.y, point.z);
-			
-			if (currentSelection.active && isFieldHighlighted(coords)) {
-				chooseMove(getMove(coords));
-				selectMesh(null);
-				return;
-			}
-			
-			piece = pieceAt(coords);
-			if (piece !== null) {
-				san = vectorToSan(coords);
-				if (isPieceSelectable(san)) {
-					turnsPossible = highlightPossibleMoves(san);
-					color = turnsPossible ? COLOR.HIGHLIGHT_POSITIVE : COLOR.HIGHLIGHT_NEUTRAL;
-					selectMesh(piece, coords, color);
-				} else {
-					selectMesh(null);
-				}
-			} else {
-				selectMesh(null);
-			}
-		}
-	}
-	
-	function transformMousePosition(event) {
-		var rect = renderer.domElement.getBoundingClientRect();
-		return {
-			x: ((event.clientX - rect.left) / (rect.width - rect.left)) * 2 - 1,
-			y: -(( event.clientY - rect.top) / (rect.bottom - rect.top)) * 2 + 1
-		};
-	}
-	
-	function isPieceSelectable(san) {
-		return selectionMode.active === true
-				&& chess.get(san).color === selectionMode.color;
-	}
-	
-	function isFieldHighlighted(coords) {
-		return highlights[coords.x][coords.y].mesh.visible;
-	}
-	
-	function chooseMove(move) {
-		selectionMode.active = false;
-		selectionMode.onSelectedCallback(move);
-		selectionMode.onSelectedCallback = null;
-	}
-	
-	function getMove(coords) {
-		return highlights[coords.x][coords.y].move;
-	}
-	
-	function radians(degrees) {
-		return degrees * (Math.PI/180);
-	}
-	
-	function degress(radians) {
-		return radians * (180/Math.PI);
-	}
-	
-	function createScene() {
+    
+    function _createScene() {
 		var spotLight, dirLight,
 			spotLight2, dirLight2;
 		
-		scene = new THREE.Scene();
-		highlightScene = new THREE.Scene();
-		overlayScene = new THREE.Scene();
+		_scene = new THREE.Scene();
+		_highlightScene = new THREE.Scene();
+		_overlayScene = new THREE.Scene();
 		
-		scene.add(new THREE.AmbientLight(0x505050));
+		_scene.add(new THREE.AmbientLight(0x505050));
 		spotLight = new THREE.SpotLight(0xffffff);
 		spotLight.angle = Math.PI / 5;
 		spotLight.penumbra = 0.2;
 		spotLight.position.set(8, 8, 8);
-		scene.add(spotLight);
+		_scene.add(spotLight);
 		dirLight = new THREE.DirectionalLight(0x55505a, 1);
 		dirLight.position.set(0, 3, 0);
 		dirLight.castShadow = false;
-		scene.add(dirLight);
+		_scene.add(dirLight);
 		
-		overlayScene.add(new THREE.AmbientLight(0x505050));
+		_overlayScene.add(new THREE.AmbientLight(0x505050));
 		spotLight2 = spotLight.clone();
 		spotLight2.position = spotLight.position;
-		overlayScene.add(spotLight2);
+		_overlayScene.add(spotLight2);
 		dirLight2 = dirLight.clone();
 		dirLight2.position = dirLight.position;
-		overlayScene.add(dirLight2);
+		_overlayScene.add(dirLight2);
 	}
 	
-	function createCamera() {
+	function _createCamera() {
 		var boundingRect = domElement.getBoundingClientRect();
 		
-		cameraParentY = new THREE.Group();
-		cameraParentX = new THREE.Group();
+		_cameraParentY = new THREE.Group();
+		_cameraParentX = new THREE.Group();
 		
-		camera = new THREE.PerspectiveCamera(
+		_camera = new THREE.PerspectiveCamera(
 			36, boundingRect.width / boundingRect.height, 0.25, 100);
-		camera.position.set(0, 0, 18);
+		_camera.position.set(0, 0, 18);
 		
-		cameraParentY.add(cameraParentX);
-		cameraParentX.add(camera);
+		_cameraParentY.add(_cameraParentX);
+		_cameraParentX.add(_camera);
 		
-		cameraParentY.rotateY(radians(90));
-		cameraParentX.rotateX(radians(-45));
+		_cameraParentY.rotateY(_radians(90));
+		_cameraParentX.rotateX(_radians(-45));
 		
-		scene.add(cameraParentY);
+		_scene.add(_cameraParentY);
 	}
 	
-	function createRenderer() {
+	function _createRenderer() {
 		var boundingRect = domElement.getBoundingClientRect();
-		renderer = new THREE.WebGLRenderer();
-		renderer.shadowMap.enabled = false;
-		renderer.setPixelRatio(window.devicePixelRatio);
-		renderer.setSize(boundingRect.width, boundingRect.height);
-		renderer.setClearColor(0x4286f4);
-		renderer.autoClear = false;
+		_renderer = new THREE.WebGLRenderer();
+		_renderer.shadowMap.enabled = false;
+		_renderer.setPixelRatio(window.devicePixelRatio);
+		_renderer.setSize(boundingRect.width, boundingRect.height);
+		_renderer.setClearColor(0x4286f4);
+		_renderer.autoClear = false;
 	}
 	
-	function extractGeometry(loadedObj) {
+	function _extractGeometry(loadedObj) {
 		var board = loadedObj.getObjectByName("Board").geometry,
 			bbox, center, width;
-		geometries.board = board;
-		geometries.frame = convertGeometry(loadedObj.getObjectByName("Board_Frame").geometry);
-		geometries.p = convertGeometry(loadedObj.getObjectByName("Pawn").geometry);
-		geometries.r = convertGeometry(loadedObj.getObjectByName("Rook").geometry);
-		geometries.n = convertGeometry(loadedObj.getObjectByName("Knight").geometry);
-		geometries.k = convertGeometry(loadedObj.getObjectByName("King").geometry);
-		geometries.q = convertGeometry(loadedObj.getObjectByName("Queen").geometry);
-		geometries.b = convertGeometry(loadedObj.getObjectByName("Bishop").geometry);
+		_geometries.board = board;
+		_geometries.frame = _convertGeometry(loadedObj.getObjectByName("Board_Frame").geometry);
+		_geometries.p = _convertGeometry(loadedObj.getObjectByName("Pawn").geometry);
+		_geometries.r = _convertGeometry(loadedObj.getObjectByName("Rook").geometry);
+		_geometries.n = _convertGeometry(loadedObj.getObjectByName("Knight").geometry);
+		_geometries.k = _convertGeometry(loadedObj.getObjectByName("King").geometry);
+		_geometries.q = _convertGeometry(loadedObj.getObjectByName("Queen").geometry);
+		_geometries.b = _convertGeometry(loadedObj.getObjectByName("Bishop").geometry);
 		
-		console.log(geometries.n);
+		console.log(_geometries.n);
 		
 		if (board.boundingBox === null) {
 			board.computeBoundingBox();
@@ -274,7 +212,7 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 		bbox = board.boundingBox.clone();
 		center = bbox.getCenter();
 		
-		cameraParentY.position.set(center.x, center.y, center.z);
+		_cameraParentY.position.set(center.x, center.y, center.z);
 		
 		width = bbox.getSize().x;
 		
@@ -283,7 +221,7 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 		
 	}
 	
-	function convertGeometry(bufferGeometry) {
+	function _convertGeometry(bufferGeometry) {
 		var geometry = new THREE.Geometry().fromBufferGeometry(bufferGeometry);
 		geometry.computeFaceNormals();
 		geometry.mergeVertices();
@@ -291,33 +229,33 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 		return geometry;
 	}
 	
-	function createMaterials() {
-		materials.board = new THREE.MeshBasicMaterial({
-			map: textures.board
+	function _createMaterials() {
+		_materials.board = new THREE.MeshBasicMaterial({
+			map: _textures.board
 		});
-		materials.frame = new THREE.MeshLambertMaterial({
-			map: textures.frame,
+		_materials.frame = new THREE.MeshLambertMaterial({
+			map: _textures.frame,
 			shading: THREE.FlatShading
 		});
-		materials.w = new THREE.MeshPhongMaterial({
+		_materials.w = new THREE.MeshPhongMaterial({
 			color: 0xffffff,
 			shading: THREE.FlatShading
 		});
-		materials.b = new THREE.MeshPhongMaterial({
+		_materials.b = new THREE.MeshPhongMaterial({
 			color: 0x222222,
 			shading: THREE.FlatShading
 		});
 	}
 	
-	function createBoard() {
-		var frame = new THREE.Mesh(geometries.frame, materials.frame);
-		board = new THREE.Mesh(geometries.board, materials.board);
+	function _createBoard() {
+		var frame = new THREE.Mesh(_geometries.frame, _materials.frame);
+		_board = new THREE.Mesh(_geometries.board, _materials.board);
 			
-		scene.add(board);
-		scene.add(frame);
+		_scene.add(_board);
+		_scene.add(frame);
 	}
 	
-	function createHighlights() {
+	function _createHighlights() {
 		var x, y, highlight, position;
 		var highlightGeometry = new THREE.PlaneGeometry(STEP, STEP);
 		var highlightMaterial = new THREE.MeshBasicMaterial({
@@ -325,141 +263,92 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 			opacity: 0.5,
 			transparent: true
 		});
-		var euler = new THREE.Euler(-radians(90), 0, 0);
+		var euler = new THREE.Euler(-_radians(90), 0, 0);
 		for (x = 0; x < TILE_COUNT; x++) {
-			highlights[x] = [];
+			_highlights[x] = [];
 			for (y = 0; y < TILE_COUNT; y++) {
 				highlight = new THREE.Mesh(highlightGeometry, highlightMaterial.clone());
-				highlights[x][y] = {
+				_highlights[x][y] = {
 					mesh: highlight,
 					move: null
 				};
-				position = boardToWorld(x, y);
+				position = _boardToWorld(x, y);
 				highlight.position.x = position.x;
 				highlight.position.y = 0.02;
 				highlight.position.z = position.z;
 				highlight.setRotationFromEuler(euler);
 				highlight.visible = false;
-				scene.add(highlight);
+				_scene.add(highlight);
 			}
 		}
 	}
 	
-	function onFinishedLoading() {
-		createMaterials();
-		createBoard();
-		applyPosition(chess.board());
+	function _onFinishedLoading() {
+		_createMaterials();
+		_createBoard();
+		_applyPosition(chess.board());
 		onFinishLoadingCallback();
 	}
 	
-	function applyBounds(x, y, width, height) {
-		offsetX = x;
-		offsetY = y;
+    //==============================
+    // Click Handler ===============
+    //==============================
+    
+	function _onClick(event) {
+		var intersects, point, coords,
+			piece, turnsPossible, color,
+			trans, san;
 		
-		camera.aspect = width / height;
-		camera.updateProjectionMatrix();
-		renderer.setSize(width, height);
-	}
-	
-	function onWindowResize() {
-		var boundingRect = domElement.getBoundingClientRect();
-		applyBounds(boundingRect.x, boundingRect.y,
-				boundingRect.width, boundingRect.height);
-	}
-	
-	function update() {
+		if (!_selectionMode.active) {
+			return;
+		}
 		
-	}
-	
-	function render() {
-		renderer.clear();
-		renderer.render(scene, camera);
-		renderer.clearDepth();
-		renderer.render(highlightScene, camera);
-		renderer.clearDepth();
-		renderer.render(overlayScene, camera);
-	}
-	
-	function onTick() {
-		update();
-		render();
-	}
-	
-	function sanToVector(san) {
-		return {
-			//x: parseInt(san.charAt(1)) - 1,
-			x: 8 - parseInt(san.charAt(1)),
-			y: san.charCodeAt(0) - 97
-		}
-	}
-	
-	function vectorToSan(vector) {
-		return String.fromCharCode(vector.y + 97) + (8 - vector.x);
-	}
-	
-	function boardToWorld(x, y) {
-		return {
-			x: (TILE_OFFSET + x * STEP),
-			y: 0,
-			z: -(TILE_OFFSET + y * STEP)
-		};
-	}
-	
-	function worldToBoard(x, y, z) {
-		return {
-			x: Math.floor(x / STEP),
-			y: Math.floor(-z / STEP)
-		}
-	}
-	
-	function spawnPiece(piece, x, y) {
-		var mesh = new THREE.Mesh(geometries[piece.type], materials[piece.color]),
-			position = boardToWorld(x, y),
-			euler = new THREE.Euler(0, ROTATION_Y[piece.color], 0);
-		// Transform
-		mesh.position.x = position.x;
-		mesh.position.z = position.z;
-		mesh.setRotationFromEuler(euler);
-		scene.add(mesh);
-		internalBoard[x][y] = mesh;
-	}
-	
-	function applyPosition(board) {
-		var width = board.length,
-			height = board[0].length,
-			x, y;
+		trans = _transformMousePosition(event);
+		raycaster.setFromCamera(trans, _camera);
+		intersects = raycaster.intersectObject(_board, false);
+		
+		if (intersects.length > 0) {
+			point = intersects[0].point;
+			coords = _worldToBoard(point.x, point.y, point.z);
 			
-		for (x = 0; x < width; x++) {
-			for (y = 0; y < height; y++) {
-				var piece = board[x][y];
-				if (piece !== null) {
-					spawnPiece(piece, x, y);
+			if (_currentSelection.active && _isFieldHighlighted(coords)) {
+				_chooseMove(_getMove(coords));
+				_selectMesh(null);
+				return;
+			}
+			
+			piece = _getPieceAt(coords);
+			if (piece !== null) {
+				san = _vectorToSan(coords);
+				if (_isPieceSelectable(san)) {
+					turnsPossible = _highlightPossibleMoves(san);
+					color = turnsPossible ? COLOR.HIGHLIGHT_POSITIVE : COLOR.HIGHLIGHT_NEUTRAL;
+					_selectMesh(piece, coords, color);
+				} else {
+					_selectMesh(null);
 				}
+			} else {
+				_selectMesh(null);
 			}
 		}
 	}
+    
+    //==============================
+    // Piece selection =============
+    //==============================
 	
-	function pieceAt(coords) {
-		return internalBoard[coords.x][coords.y];
-	}
-	
-	function setPieceAt(coords, piece) {
-		internalBoard[coords.x][coords.y] = piece;
-	}
-	
-	function selectMesh(mesh, coords, color) {
-		
+	function _selectMesh(mesh, coords, color) {
 		var highlightMesh, overlayMesh;
 		
 		if (typeof color === "undefined" || color === null) {
 			color = COLOR.HIGHLIGHT_POSITIVE;
 		}
 		
-		if (currentSelection.highlightMesh !== null) {
-			highlightScene.remove(currentSelection.highlightMesh);
+		if (_currentSelection.highlightMesh !== null) {
+			_highlightScene.remove(_currentSelection.highlightMesh);
 		}
-		if (currentSelection.overlayMesh !== null) {
-			overlayScene.remove(currentSelection.overlayMesh);
+		if (_currentSelection.overlayMesh !== null) {
+			_overlayScene.remove(_currentSelection.overlayMesh);
 		}
 		
 		if (mesh !== null) {
@@ -469,80 +358,310 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 			
 			overlayMesh = mesh.clone();
 			
-			currentSelection.highlightMesh = highlightMesh;
-			currentSelection.overlayMesh = overlayMesh;
+			_currentSelection.highlightMesh = highlightMesh;
+			_currentSelection.overlayMesh = overlayMesh;
 			
-			highlightScene.add(highlightMesh);
-			overlayScene.add(overlayMesh);
+			_highlightScene.add(highlightMesh);
+			_overlayScene.add(overlayMesh);
 			
-			currentSelection.coords = coords;
-			currentSelection.active = true;
+			_currentSelection.coords = coords;
+			_currentSelection.active = true;
 		} else {
-			clearHighlights();
-			currentSelection.active = false;
+			_clearHighlights();
+			_currentSelection.active = false;
 		}
 	}
 	
-	function animateMove(move, callback) {
-		var sourceCoords = sanToVector(move["from"]),
-			targetCoords = sanToVector(move.to),
-			piece, capture = false, promotion = false;
-			
-		piece = pieceAt(sourceCoords);
-		if (move.hasOwnProperty("captured") && move.captured !== null) {
-			capture = pieceAt(targetCoords);
-		}
-		if (move.hasOwnProperty("promotion") && move.captured !== null) {
-			promotion = {
-				type: move.promotion,
-				color: move.color
-			};
-		}
-		
-		setPieceAt(sourceCoords, null);
-		setPieceAt(targetCoords, piece);
-		
-		function movePiece() {
-			var worldPos = boardToWorld(targetCoords.x, targetCoords.y);
-			TweenLite.to(piece.position, 0.5, {
-				x: worldPos.x,
-				z: worldPos.z,
-				ease: Power1.easeInOut,
-				onComplete: lower
-			});
-		}
-		
-		function lower() {
-			if (capture) {
-				scene.remove(capture);
-			}
-			
-			TweenLite.to(piece.position, 0.5, {
-				y: 0,
-				ease: Power1.easeInOut,
-				onComplete: cleanup
-			});
-		}
-		
-		function cleanup() {
-			if (promotion) {
-				scene.remove(piece);
-				spawnPiece(promotion, targetCoords.x, targetCoords.y);
-			}
-			callback();
-		}
-		
-		TweenLite.to(piece.position, 0.5, {
-			y: MAX_HEIGHT,
-			ease: Power1.easeInOut,
-			onComplete: movePiece
-		});
+	function _isPieceSelectable(san) {
+		return _selectionMode.active === true
+				&& chess.get(san).color === _selectionMode.color;
 	}
 	
-	function highlightPossibleMoves(square) {
-		clearHighlights();
+	function _isFieldHighlighted(coords) {
+		return _highlights[coords.x][coords.y].mesh.visible;
+	}
+	
+	function _chooseMove(move) {
+		_selectionMode.active = false;
+		_selectionMode.onSelectedCallback(move);
+		_selectionMode.onSelectedCallback = null;
+	}
+	
+	function _getMove(coords) {
+		return _highlights[coords.x][coords.y].move;
+	}
+    
+    //==============================
+    // Utility function ============
+    //==============================
+	
+	function _radians(degrees) {
+		return degrees * (Math.PI/180);
+	}
+	
+	function _degress(radians) {
+		return radians * (180/Math.PI);
+	}
+    
+    //==============================
+    // Resizing ====================
+    //==============================
+	
+	function _applyBounds(x, y, width, height) {
+		_offsetX = x;
+		_offsetY = y;
+		
+		_camera.aspect = width / height;
+		_camera.updateProjectionMatrix();
+		_renderer.setSize(width, height);
+	}
+	
+	function _onWindowResize() {
+		var boundingRect = domElement.getBoundingClientRect();
+		_applyBounds(boundingRect.x, boundingRect.y,
+				boundingRect.width, boundingRect.height);
+	}
+    
+    //==============================
+    // Update & Render =============
+    //==============================
+	
+	function _update() {
+		
+	}
+	
+	function _render() {
+		_renderer.clear();
+		_renderer.render(_scene, _camera);
+		_renderer.clearDepth();
+		_renderer.render(_highlightScene, _camera);
+		_renderer.clearDepth();
+		_renderer.render(_overlayScene, _camera);
+	}
+	
+	function _onTick() {
+		_update();
+		_render();
+	}
+    
+    //==============================
+    // Coordinate conversion =======
+    //==============================
+	
+	function _transformMousePosition(event) {
+		var rect = _renderer.domElement.getBoundingClientRect();
+		return {
+			x: ((event.clientX - rect.left) / (rect.width - rect.left)) * 2 - 1,
+			y: -(( event.clientY - rect.top) / (rect.bottom - rect.top)) * 2 + 1
+		};
+	}
+	
+	function _sanToVector(san) {
+		return {
+			x: san.charCodeAt(0) - 97,
+            y: parseInt(san.charAt(1)) - 1
+		}
+	}
+	
+	function _vectorToSan(vector) {
+		return String.fromCharCode(vector.x + 97) + (1 + vector.y);
+	}
+	
+	function _boardToWorld(x, y) {
+		return {
+			x: (TILE_OFFSET + x * STEP),
+			y: 0,
+			z: -(TILE_OFFSET + y * STEP)
+		};
+	}
+	
+	function _worldToBoard(x, y, z) {
+		return {
+			x: Math.floor(x / STEP),
+			y: Math.floor(-z / STEP)
+		}
+	}
+    //==============================
+    // Piece manipulation ==========
+    //==============================
+	
+	function _spawnPiece(piece, x, y) {
+		var mesh = new THREE.Mesh(_geometries[piece.type], _materials[piece.color]),
+			position = _boardToWorld(x, y),
+			euler = new THREE.Euler(0, ROTATION_Y[piece.color], 0);
+		// Transform
+		mesh.position.x = position.x;
+		mesh.position.z = position.z;
+		mesh.setRotationFromEuler(euler);
+		_scene.add(mesh);
+		_internalBoard[x][y] = mesh;
+	}
+	
+	function _applyPosition(board) {
+		var width = board.length,
+			height = board[0].length,
+			x, y;
+			
+		for (x = 0; x < width; x++) {
+			for (y = 0; y < height; y++) {
+				var piece = board[x][y];
+				if (piece !== null) {
+					_spawnPiece(piece, y, 7 - x);
+				}
+			}
+		}
+	}
+	
+	function _getPieceAt(coords) {
+		return _internalBoard[coords.x][coords.y];
+	}
+	
+	function _setPieceAt(coords, piece) {
+		_internalBoard[coords.x][coords.y] = piece;
+	}
+    
+    function _removePieceAt(coords) {
+        var piece = _getPieceAt(coords);
+        _setPieceAt(coords, null);
+        _scene.remove(piece);
+    }
+    
+    //==============================
+    // Move related ================
+    //==============================
+    
+    function _isFlagSet(move, flag) {
+        return move.flags.indexOf(flag) != -1;
+    }
+    
+    function _isCapture(move) {
+        return _isFlagSet(move, 'c') || _isFlagSet(move, 'e');
+    }
+    
+    function _getCapturedPieceField(move) {
+        if (_isFlagSet(move, 'e')) {
+            var fromPos = _sanToVector(move.from);
+            var toPos = _sanToVector(move.to);
+            return {
+                x: fromPos.y,
+                y: toPos.x
+            };
+        } else {
+            return _sanToVector(move.to);
+        }
+    }
+    
+    function _isPromotion(move) {
+        return _isFlagSet(move, 'p');
+    }
+    
+    function _isCastling(move) {
+        return _isFlagSet(move, 'k') || _isFlagSet(move, 'q');
+    }
+    
+    function _getCastlingTower(move) {
+        var fromPos = _sanToVector(move.from);
+        var coords = {
+            x: fromPos.x + (_isFlagSet(move, 'k') ? 3 : -4),
+            y: fromPos.y
+        };
+        return _getPieceAt(coords);
+    }
+    
+    function _getCastlingTowerSource(move) {
+        return {
+            x: (_isFlagSet(move, 'k') ? 7 : 0),
+            y: ((move.color === 'w') ? 0 : 7)
+        };
+    }
+    
+    function _getCastlingTowerTarget(move) {
+        return {
+            x: (_isFlagSet(move, 'k') ? 5 : 3),
+            y: ((move.color === 'w') ? 0 : 7)
+        };
+    }
+    
+    function _movePiece(piece, source, target, onBeforeLower, onComplete) {
+        var worldCoords = _boardToWorld(target.x, target.y);
+        var rise = function() {
+            TweenLite.to(piece.position, 0.5, {
+                y: MAX_HEIGHT,
+                ease: Power1.easeInOut,
+                onComplete: move
+            });
+        };
+        var move = function() {
+            TweenLite.to(piece.position, 0.5, {
+                x: worldCoords.x,
+                z: worldCoords.z,
+                ease: Power1.easeInOut,
+                onComplete: function() {
+                    
+                    if (onBeforeLower != null) {
+                        onBeforeLower(lower);
+                    } else {
+                        lower();
+                    }
+                    
+                }
+            });
+        };
+        var lower = function() {
+            TweenLite.to(piece.position, 0.5, {
+                y: 0,
+                ease: Power1.easeInOut,
+                onComplete: function() {
+                    _setPieceAt(target, piece);
+                    onComplete();
+                }
+            });
+        };
+        
+        _setPieceAt(source, null);
+        rise();
+    }
+	
+	function _animateMove(move, callback) {
+		var sourceCoords = _sanToVector(move.from),
+			targetCoords = _sanToVector(move.to);
+            
+		var piece = _getPieceAt(sourceCoords);
+        
+        var onBeforeLower = function(lower) {
+            if (_isCapture(move)) {
+                _removePieceAt(_getCapturedPieceField(move));
+            }
+            lower();
+        };
+        
+        var onComplete = function() {
+            if (_isCastling(move)) {
+                var tower = _getCastlingTower(move);
+                var towerSource = _getCastlingTowerSource(move);
+                var towerTarget = _getCastlingTowerTarget(move);
+                
+                _movePiece(tower, towerSource, towerTarget, null, callback);
+            } else if (_isPromotion(move)) {
+                _removePieceAt(targetCoords);
+                _spawnPiece(move.promotion, targetCoords.x, targetCoords.y);
+                callback();
+            } else {
+                callback();
+            }
+        };
+        
+        _movePiece(piece, sourceCoords, targetCoords, onBeforeLower, onComplete);
+	}
+    
+    //==============================
+    // Move Highlighting ===========
+    //==============================
+	
+	function _highlightPossibleMoves(square) {
+		_clearHighlights();
 		var piece = chess.get(square);
-		var mesh = pieceAt(sanToVector(square));
+		var mesh = _getPieceAt(_sanToVector(square));
 		var moves = chess.moves({
 			verbose: true,
 			square: square
@@ -550,33 +669,41 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 		var i;
 		
 		for (i = 0; i < moves.length; i++) {
-			highlightSquare(moves[i]);
+			_highlightSquare(moves[i]);
 		}
 		
 		return moves.length > 0;
 	}
 	
-	function clearHighlights() {
+	function _clearHighlights() {
 		var x, y;
-		for (x = 0; x < highlights.length; x++) {
-			for (y = 0; y < highlights[x].length; y++) {
-				highlights[x][y].mesh.visible = false;
-				highlights[x][y].move = null;
+		for (x = 0; x < _highlights.length; x++) {
+			for (y = 0; y < _highlights[x].length; y++) {
+				_highlights[x][y].mesh.visible = false;
+				_highlights[x][y].move = null;
 			}
 		}
 	}
 	
-	function highlightSquare(move) {
-		var coords = sanToVector(move.to);
-		var mesh = highlights[coords.x][coords.y].mesh;
-		highlights[coords.x][coords.y].move = move;
-		if (pieceAt(coords) !== null) {
-			mesh.material.color.set(0xff0000);
-		} else {
-			mesh.material.color.set(0x00ff00);
-		}
+	function _highlightSquare(move) {
+		var coords = _sanToVector(move.to);
+		var mesh = _highlights[coords.x][coords.y].mesh;
+		_highlights[coords.x][coords.y].move = move;
+        if (_isCapture(move)) {
+            mesh.material.color.set(0xff0000);
+        } else if (_isPromotion(move)) {
+            mesh.material.color.set(0x0000ff);
+        } else if (_isCastling(move)) {
+            mesh.material.color.set(0xffff00);
+        } else {
+            mesh.material.color.set(0x00ff00);
+        }
 		mesh.visible = true;
 	}
+    
+    //==============================
+    // Validate parameters =========
+    //==============================
 	
 	if (typeof chess === "undefined" || chess === null) {
 		throw "Invalid parameter: chess is undefined or null";
@@ -584,10 +711,18 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 	
 	if (typeof domElement === "undefined" || domElement === null) {
 		throw "Invalid parameter: domElelemt is undefined or null";
-		document.body.appendChild(renderer.domElement);
+		document.body.appendChild(_renderer.domElement);
 	}
+    
+    //==============================
+    // Start Initialization ========
+    //==============================
 	
-	init();
+	_init();
+    
+    //==============================
+    // Returned Object (public) ====
+    //==============================
 	
 	return {
         /**
@@ -596,7 +731,7 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
          * @param {finishedCallback} callback
          */
 		animateMove: function(move, callback) {
-			animateMove(move, callback);
+			_animateMove(move, callback);
 		},
         
         /**
@@ -604,7 +739,7 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
          * state of the chess object
          */
 		applyCurrentPosition: function() {
-			applyPosition(chess.board());
+			_applyPosition(chess.board());
 		},
         
         /**
@@ -614,9 +749,9 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
          * @param {moveSelecetedCallback} onMoveSelectedCallback
          */
 		selectMoveForColor: function(color, onMoveSelectedCallback) {
-			selectionMode.color = color;
-			selectionMode.onSelectedCallback = onMoveSelectedCallback;
-			selectionMode.active = true;
+			_selectionMode.color = color;
+			_selectionMode.onSelectedCallback = onMoveSelectedCallback;
+			_selectionMode.active = true;
 		},
         
         /**
@@ -627,7 +762,7 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
          * @param {number} height
          */
 		applyBounds: function(x, y, width, height) {
-			applyBounds(x, y, width, height);
+			_applyBounds(x, y, width, height);
 		},
         
         /**
@@ -638,9 +773,9 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 			var rotation;
 			var lastValue;
 			
-			if (cameraState.isMoving) return;
+			if (_cameraState.isMoving) return;
 			
-			cameraState.isMoving = true;
+			_cameraState.isMoving = true;
 			rotation = {
 				value: 0
 			};
@@ -653,23 +788,23 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 					lastValue = rotation.value;
 					switch (dir) {
 						case "left":
-							cameraParentY.rotateY(-radians(value * 2));
+							_cameraParentY.rotateY(-_radians(value * 2));
 							break;
 						case "right":
-							cameraParentY.rotateY(radians(value * 2));
+							_cameraParentY.rotateY(_radians(value * 2));
 							break;
 						case "up":
-							cameraParentX.rotateX(-radians(value));
+							_cameraParentX.rotateX(-_radians(value));
 							break;
 						case "down":
-							cameraParentX.rotateX(radians(value));
+							_cameraParentX.rotateX(_radians(value));
 							break;
 						default:
 							break;
 					}
 				},
 				onComplete: function () {
-					cameraState.isMoving = false;
+					_cameraState.isMoving = false;
 				}
 			});
 		},
@@ -687,8 +822,8 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
          * @param {number} factor
          */
 		dollyCamera: function(factor) {
-			var posZ = camera.position.z;
-			camera.position.setComponent(2, Math.max(CAMERA_MIN_DIST, Math.min(CAMERA_MAX_DIST, posZ / factor)));
+			var posZ = _camera.position.z;
+			_camera.position.setComponent(2, Math.max(CAMERA_MIN_DIST, Math.min(CAMERA_MAX_DIST, posZ / factor)));
 		},
         
         /**
@@ -696,7 +831,7 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
          * @return {Object} reference
          */
 		getRendererDomElement: function() {
-			return renderer.domElement;
+			return _renderer.domElement;
 		}
 	};
 };

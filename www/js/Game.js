@@ -33,17 +33,26 @@ var Game = function(app, settings) {
         _currentPlayer = _players[_currentPlayerIndex];
     };
     
+    var _getCurrentPlayerIndex = function() {
+        return (_chess.turn() === 'w') ? 0 : 1;
+    };
+    
     var _createPlayers = function() {
         _players.push(_createPlayer('w', settings.players.white.type));
         _players.push(_createPlayer('b', settings.players.black.type));
-        _currentPlayerIndex = 0;
-        _currentPlayer = _players[0];
+        _currentPlayerIndex = _getCurrentPlayerIndex();
+        _currentPlayer = _players[_currentPlayerIndex];
         _delegatePlayer();
+    };
+    
+    var _isLocalGame = function() {
+        return settings.players.white.type === 'local'
+                && settings.players.black.type === 'local';
     };
     
     var _createPlayer = function(color, type) {
         if (type === 'local') {
-            return new LocalPlayer(color, app, _board, true);
+            return new LocalPlayer(color, app, _board, !_isLocalGame());
         } else if (type === 'network') {
             return new NetworkPlayer(color, app);
         }
@@ -54,9 +63,12 @@ var Game = function(app, settings) {
          * Initialize and run the game. Players will select moves alternately
          * and the BoardView will be updated accordingly.
          */
-        run: function() {
+        run: function(pgn) {
             var parent = settings.rendererParent;
             _chess = new Chess();
+            if (pgn != null) {
+                _chess.load(pgn);
+            }
             _board = new BoardView(_chess, parent, _createPlayers);
             _camControls = new CameraControls(_board, parent);
         },
