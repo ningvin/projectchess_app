@@ -387,14 +387,13 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 	
 	function sanToVector(san) {
 		return {
-			//x: parseInt(san.charAt(1)) - 1,
-			x: 8 - parseInt(san.charAt(1)),
-			y: san.charCodeAt(0) - 97
+			x: san.charCodeAt(0) - 97,
+            y: parseInt(san.charAt(1)) - 1
 		}
 	}
 	
 	function vectorToSan(vector) {
-		return String.fromCharCode(vector.y + 97) + (8 - vector.x);
+		return String.fromCharCode(vector.x + 97) + (1 + vector.y);
 	}
 	
 	function boardToWorld(x, y) {
@@ -433,7 +432,7 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 			for (y = 0; y < height; y++) {
 				var piece = board[x][y];
 				if (piece !== null) {
-					spawnPiece(piece, x, y);
+					spawnPiece(piece, y, 7 - x);
 				}
 			}
 		}
@@ -446,9 +445,14 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 	function setPieceAt(coords, piece) {
 		internalBoard[coords.x][coords.y] = piece;
 	}
+    
+    function removePieceAt(coords) {
+        var piece = pieceAt(coords);
+        setPieceAt(coords, null);
+        scene.remove(piece);
+    }
 	
 	function selectMesh(mesh, coords, color) {
-		
 		var highlightMesh, overlayMesh;
 		
 		if (typeof color === "undefined" || color === null) {
@@ -482,61 +486,129 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 			currentSelection.active = false;
 		}
 	}
+    
+    function _isFlagSet(move, flag) {
+        return move.flags.indexOf(flag) != -1;
+    }
+    
+    function _isCapture(move) {
+        return _isFlagSet(move, 'c') || _isFlagSet(move, 'e');
+    }
+    
+    function _getCapturedPieceField(move) {
+        if (_isFlagSet(move, 'e')) {
+            var fromPos = sanToVector(move.from);
+            var toPos = sanToVector(move.to);
+            return {
+                x: fromPos.y,
+                y: toPos.x
+            };
+        } else {
+            return sanToVector(move.to);
+        }
+    }
+    
+    function _isPromotion(move) {
+        return _isFlagSet(move, 'p');
+    }
+    
+    function _isCastling(move) {
+        return _isFlagSet(move, 'k') || _isFlagSet(move, 'q');
+    }
+    
+    function _getCastlingTower(move) {
+        var fromPos = sanToVector(move.from);
+        var coords = {
+            x: fromPos.x + (_isFlagSet(move, 'k') ? 3 : -4),
+            y: fromPos.y
+        };
+        return pieceAt(coords);
+    }
+    
+    function _getCastlingTowerSource(move) {
+        return {
+            x: (_isFlagSet(move, 'k') ? 7 : 0),
+            y: ((move.color === 'w') ? 0 : 7)
+        };
+    }
+    
+    function _getCastlingTowerTarget(move) {
+        return {
+            x: (_isFlagSet(move, 'k') ? 5 : 3),
+            y: ((move.color === 'w') ? 0 : 7)
+        };
+    }
+    
+    function _movePiece(piece, source, target, onBeforeLower, onComplete) {
+        var worldCoords = boardToWorld(target.x, target.y);
+        var rise = function() {
+            TweenLite.to(piece.position, 0.5, {
+                y: MAX_HEIGHT,
+                ease: Power1.easeInOut,
+                onComplete: move
+            });
+        };
+        var move = function() {
+            TweenLite.to(piece.position, 0.5, {
+                x: worldCoords.x,
+                z: worldCoords.z,
+                ease: Power1.easeInOut,
+                onComplete: function() {
+                    
+                    if (onBeforeLower != null) {
+                        onBeforeLower(lower);
+                    } else {
+                        lower();
+                    }
+                    
+                }
+            });
+        };
+        var lower = function() {
+            TweenLite.to(piece.position, 0.5, {
+                y: 0,
+                ease: Power1.easeInOut,
+                onComplete: function() {
+                    setPieceAt(target, piece);
+                    onComplete();
+                }
+            });
+        };
+        
+        setPieceAt(source, null);
+        rise();
+    }
 	
 	function animateMove(move, callback) {
-		var sourceCoords = sanToVector(move["from"]),
-			targetCoords = sanToVector(move.to),
-			piece, capture = false, promotion = false;
-			
-		piece = pieceAt(sourceCoords);
-		if (move.hasOwnProperty("captured") && move.captured !== null) {
-			capture = pieceAt(targetCoords);
-		}
-		if (move.hasOwnProperty("promotion") && move.captured !== null) {
-			promotion = {
-				type: move.promotion,
-				color: move.color
-			};
-		}
-		
-		setPieceAt(sourceCoords, null);
-		setPieceAt(targetCoords, piece);
-		
-		function movePiece() {
-			var worldPos = boardToWorld(targetCoords.x, targetCoords.y);
-			TweenLite.to(piece.position, 0.5, {
-				x: worldPos.x,
-				z: worldPos.z,
-				ease: Power1.easeInOut,
-				onComplete: lower
-			});
-		}
-		
-		function lower() {
-			if (capture) {
-				scene.remove(capture);
-			}
-			
-			TweenLite.to(piece.position, 0.5, {
-				y: 0,
-				ease: Power1.easeInOut,
-				onComplete: cleanup
-			});
-		}
-		
-		function cleanup() {
-			if (promotion) {
-				scene.remove(piece);
-				spawnPiece(promotion, targetCoords.x, targetCoords.y);
-			}
-			callback();
-		}
-		
-		TweenLite.to(piece.position, 0.5, {
-			y: MAX_HEIGHT,
-			ease: Power1.easeInOut,
-			onComplete: movePiece
-		});
+		var sourceCoords = sanToVector(move.from),
+			targetCoords = sanToVector(move.to);
+            
+		var piece = pieceAt(sourceCoords);
+        
+        var onBeforeLower = function(lower) {
+            if (_isCapture(move)) {
+                removePieceAt(_getCapturedPieceField(move));
+            }
+            lower();
+        };
+        
+        var onComplete = function() {
+            if (_isCastling(move)) {
+                var tower = _getCastlingTower(move);
+                var towerSource = _getCastlingTowerSource(move);
+                var towerTarget = _getCastlingTowerTarget(move);
+                
+                _movePiece(tower, towerSource, towerTarget, null, callback);
+            } else if (_isPromotion(move)) {
+                removePieceAt(targetCoords);
+                spawnPiece(move.promotion, targetCoords.x, targetCoords.y);
+                callback();
+            } else {
+                callback();
+            }
+        };
+        
+        _movePiece(piece, sourceCoords, targetCoords, onBeforeLower, onComplete);
 	}
 	
 	function highlightPossibleMoves(square) {
@@ -570,11 +642,15 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 		var coords = sanToVector(move.to);
 		var mesh = highlights[coords.x][coords.y].mesh;
 		highlights[coords.x][coords.y].move = move;
-		if (pieceAt(coords) !== null) {
-			mesh.material.color.set(0xff0000);
-		} else {
-			mesh.material.color.set(0x00ff00);
-		}
+        if (_isCapture(move)) {
+            mesh.material.color.set(0xff0000);
+        } else if (_isPromotion(move)) {
+            mesh.material.color.set(0x0000ff);
+        } else if (_isCastling(move)) {
+            mesh.material.color.set(0xffff00);
+        } else {
+            mesh.material.color.set(0x00ff00);
+        }
 		mesh.visible = true;
 	}
 	
