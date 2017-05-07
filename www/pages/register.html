@@ -3,21 +3,28 @@
 		<div class="center">Project Chess</div>
         <div class="left"><ons-back-button>Back</ons-back-button></div>
     </ons-toolbar>
-
+	<!-- This is the page after 'register' button clicked-->
     <center>
 		<img src="img/game.png" id="chessicon"></img>
         <form action="/signup.php">
+		
             <div class="container" id="register">
-            <label><b>Username</b></label>
-            <input type="text" placeholder="Enter username" name="username" required>
-
-            <label><b>Password</b></label>
-            <input type="password" placeholder="Enter password" name="password" required>
-
-            <label><b>Re-enter Password</b></label>
-            <input type="password" placeholder="Repeat password" name="repassword" required>
-            <input type="checkbox" checked="checked"> Keep me logged in
-            </br>
+			<tr>
+				<td><label><b>Username</b></label>
+				<input type="text" placeholder="Enter username" name="username" required></td>
+			</tr>
+			<tr>
+				<td><label><b>Password</b></label>
+				<input type="password" placeholder="Enter password" name="password" required></td>
+			</tr>
+			<tr>
+				<td><label><b>Re-enter Password</b></label>
+				<input type="password" placeholder="Repeat password" name="repassword" required>
+				<input type="checkbox" checked="checked"> Keep me logged in</td>
+			</tr>
+            <br />
+			<br />
+			
             <div class="clearfix">
                 <ons-button id="cancel-btn">Cancel</ons-button>
                 <ons-button id="signupbtn">Sign Up</ons-button>
