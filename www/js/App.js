@@ -36,7 +36,7 @@ function App() {
     
     var _receivedInvites = [];
     
-    var _state = STATES.INITAL;
+    var _state = STATES.INITIAL;
     
     var _listeners = {
         'join_lobby': [],
@@ -63,8 +63,32 @@ function App() {
         }
     }
     
-    function _expectState() {
+    function _stateToString(state) {
+        var prop;
+        for (prop in STATES) {
+            if (STATES.hasOwnProperty(prop)
+                    && STATES[prop] == state) {
+                return prop;
+            }
+        }
+        return 'NULL';
+    }
+    
+    function _statesToString(states) {
         var i;
+        var str = '(';
+        for (i = 0; i < states.length; i++) {
+            str += _stateToString(_states[i]);
+            if (i < (_states.length - 1)) {
+                str += '|';
+            }
+        }
+        return str + ')';
+    }
+    
+    function _isState() {
+        var i;
+        fail = (typeof fail !== 'undefined') ? fail : false;
         for (i = 0; i < arguments.length; i++) {
             if (_state == arguments[i])
                 return true;
@@ -73,7 +97,21 @@ function App() {
         return false;
     }
     
-    function get(url, callback) {
+    function _expectState() {
+        var i;
+        fail = (typeof fail !== 'undefined') ? fail : false;
+        for (i = 0; i < arguments.length; i++) {
+            if (_state == arguments[i])
+                return;
+        }
+        
+        throw ('[App] - Invalid state: expected '
+                + _statesToString(arguments)
+                + ', got '
+                + _stateToString(_state));
+    }
+    
+    function _get(url, callback) {
         var req = new XMLHttpRequest();
         req.onreadystatechange = function() {
             if (this.readyState == 4) {
@@ -87,7 +125,7 @@ function App() {
         req.send();
     }
     
-    function post(url, data, callback) {
+    function _post(url, data, callback) {
         var req = new XMLHttpRequest();
         req.onreadystatechange = function() {
             if (this.readyState == 4) {
@@ -117,17 +155,20 @@ function App() {
         });
         
         s.on('join_lobby', function(msg) {
-            if (_expectState(STATES.LOBBY))
+            if (_isState(STATES.LOBBY, STATES.PLAYER_INVITED,
+                    STATES.PENDING_LAUNCH))
                 _callListeners('join_lobby', msg);
         });
         
         s.on('leave_lobby', function(msg) {
-            if (_expectState(STATES.LOBBY))
+            if (_isState(STATES.LOBBY, STATES.PLAYER_INVITED,
+                    STATES.PENDING_LAUNCH))
                 _callListeners('leave_lobby', msg);
         });
         
         s.on('game_invite', function(msg) {
-            if (!_expectState(STATES.LOBBY, STATES.LOGGED_IN))
+            if (!_isState(STATES.LOBBY, STATES.LOGGED_IN,
+                    STATES.PLAYER_INVITED, STATES.PENDING_LAUNCH))
                 return;
             
             if (_receivedInvites.indexOf(msg.id) != -1)
@@ -139,22 +180,39 @@ function App() {
         });
         
         s.on('game_invite_withdraw', function(msg) {
+            
+            if (!_isState(STATES.LOBBY, STATES.LOGGED_IN,
+                    STATES.PLAYER_INVITED, STATES.PENDING_LAUNCH))
+                return;
+            
             _removeFromArray(_receivedInvites, msg.id);
             
             _callListeners('game_invite_withdraw', msg);
         });
         
         s.on('game_launch', function(msg) {
+            
+            if (!_isState(STATES.PENDING_LAUNCH))
+                return;
+            
             _opponent = msg.id;
             _isHost = false;
             _callListeners('game_launch', msg);
         });
         
         s.on('game_response', function(msg) {
+            
+            if (!_isState(STATES.PLAYER_INVITED))
+                return;
+            
             _callListeners('game_response', msg);
         });
         
         s.on('move', function(msg) {
+            
+            if (!_isState(STATES.GAME))
+                return;
+            
             _callListeners('move', msg);
         });
     }
@@ -169,7 +227,9 @@ function App() {
         login: function(data, callback) {
             var token, data;
             
-            post(REST_URL + 'login', data, function(res) {
+            _expectState(STATES.INITIAL);
+            
+            _post(REST_URL + 'login', data, function(res) {
                 if (res.status == 200) {
                     data = JSON.parse(res.data);
                     _user = data.user;
@@ -194,6 +254,9 @@ function App() {
          * @param {statusCallback} callback
          */
         logout: function(callback) {
+            
+            _expectState(STATES.LOGGED_IN);
+            
             _socket.disconnect();
             _user = null;
             _state = STATES.INITIAL;
@@ -205,7 +268,10 @@ function App() {
          * @param {statusCallback} callback
          */
         register: function(data, callback) {
-            post(REST_URL + 'register', data, function(res) {
+            
+            _expectState(STATES.INITIAL);
+            
+            _post(REST_URL + 'register', data, function(res) {
                 if (res.status == 200) {
                     callback(true);
                 } else {
@@ -219,6 +285,9 @@ function App() {
          * Requires the user to be logged in
          */
         joinLobby: function() {
+            
+            _expectState(STATES.LOGGED_IN);
+            
             _socket.emit('join_lobby', {
                 id: _user.id
             });
@@ -231,6 +300,9 @@ function App() {
          * Requires the user to be logged in
          */
         leaveLobby: function() {
+            
+            _expectState(STATES.LOBBY, STATES.PLAYER_INVITED);
+            
             _socket.emit('leave_lobby', {
                 id: _user.id
             });
@@ -244,6 +316,9 @@ function App() {
          * @param {string} opponent - Id of the user to invite
          */
         sendInvite: function(opponent) {
+            
+            _expectState(STATES.LOBBY, STATES.PLAYER_INVITED);
+            
             _invited = opponent;
             _socket.emit('game_invite', {
                 id: opponent
@@ -255,6 +330,9 @@ function App() {
          * Requires the user to be logged in
          */
         cancelInvite: function() {
+            
+            _expectState(STATES.PLAYER_INVITED);
+            
             _socket.emit('game_invite_withdraw', {
                 id: _invited
             });
@@ -267,6 +345,9 @@ function App() {
          * @param {string} opponent - Id of the user that sent the invite
          */
         acceptInvite: function(opponent) {
+            
+            _expectState(STATES.LOBBY, STATES.PLAYER_INVITED);
+            
             _socket.emit('game_response', {
                 id: opponent,
                 accepted: true
@@ -279,7 +360,11 @@ function App() {
          * @param {string} opponent - Id of the user that sent the invite
          */
         declineInvite: function(opponent) {
-            var i = _receivedInvites.indexOf(opponent) != -1;
+            var i;
+            
+            _expectState(STATES.LOBBY, STATES.PLAYER_INVITED);
+            
+            i = _receivedInvites.indexOf(opponent) != -1;
             if (i != -1) {
                 _receivedInvites.splice(i, 1);
             }
@@ -297,7 +382,9 @@ function App() {
          * Requires the user to be logged in
          */
         launchGame: function() {
-            console.log(_invited);
+            
+            _expectState(STATES.PENDING_LAUNCH);
+            
             _opponent = _invited;
             _isHost = true;
             _socket.emit('game_launch', {
@@ -310,6 +397,9 @@ function App() {
          * @param {Object} move - Move object directly processable by chess.js
          */
         sendMove: function(move) {
+            
+            _expectState(STATES.GAME);
+            
             _socket.emit('move', {
                 id: _opponent,
                 move: move
@@ -330,7 +420,8 @@ function App() {
          */
         queryPlayersInLobby: function(callback) {
             var data;
-            get(REST_URL + 'api/users?token=' + _user.token, function(res) {
+            
+            _get(REST_URL + 'api/users?token=' + _user.token, function(res) {
                 if (res.status == 200) {
                     data = JSON.parse(res.data);
                     callback(data.users);
