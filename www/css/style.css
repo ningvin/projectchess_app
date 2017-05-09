@@ -17,77 +17,134 @@
 	pointer-events: auto;
 }
 
-body 
+/*Settings for top navigation bar-toolbar*/
+.navigation-bar
 {
-    font-family: 'Amiko';
-    font-size: 20px;
+	background-color: #4d88ff;
+	height:55px;
+	text-align:center;
+	
 }
 
+/* Settings for page title */
+.navigation-bar__title
+{
+	color:#ffffff;
+	margin-top:5px;
+	font-size:20px;
+}
+
+/* Navigation button */
+.back-button
+{
+	margin-top:5px;
+	color:#fff;
+}
+
+/* Set font for all onsen pages */
+.page
+{
+	font-family:'calibri light';
+	letter-spacing:3px;
+}
+
+/*Sets onsen-page background*/
+.page__background
+{
+	background-image:url('grid-bg.png');
+	background-repeat:repeat;
+	background-attachment:fixed;
+	position:fixed;
+}
+/* Basic settings for chess icon*/
 #chessicon
 {
 	width:150px;
 	height:150px;
-	margin-top:50px;
+	margin-top:60px;
 	margin-left:50px;
 	margin-right:50px;
 }
+
+/* Adjusting size of register/login fields*/
 #register, #login
 {
 	margin-top:20px;
-    background-color: #e6f2ff;
-	width:30%;
-}
-
-#fixheader
-{
-    background-color: #6699ff;
-    font-family: verdana;
-    font-weight: bold;
-}
-
-#menuheader
-{
-    background-color: #6699ff;
-    font-family: verdana;
-    font-weight: bold;
+	background: rgba(204, 224, 255, 0.9);
+	border: none;
+	border-radius:20px;
+	opacity:0.8;
+	width:25%;
+	height:20%;
 }
 
 /* Full-width input fields */
-input[type=text], input[type=password] {
-    width: 100%;
-    padding: 8px 20px;
-    margin: 8px 0;
-    display: inline-block;
-    border: 1px solid #ccc;
-    box-sizing: border-box;
+input[type=text], input[type=password] 
+{
+	display:block;
+	margin-bottom: 20px;
+	width:50%;
+	height:30px;
+	text-align:center;
+	border: 3px solid #ccc;
+	-webkit-transition: 0.5s;
+}
+
+/* Change textbox border color on focus */
+input[type=text]:focus, input[type=password]:focus
+{
+    border: 3px solid #555;
+}
+
+/* Put placeholders in middle */
+::-webkit-input-placeholder {
+   color: #808080;
+   text-align: center;
+
 }
 
 /* Set a style for all buttons */
-button {
-    background-color: #99ccff;
-    color: white;
-    padding: 14px 20px;
-    margin: 8px 0;
-    border: none;
+.button {
+	border: 3px solid #6495ED;
+    background-color: #ffffff;
+    color: #6495ED;
+	margin: 8px 0;
     cursor: pointer;
-    width: 100%;
+    width: 200px;
+	display:block;
+	-webkit-transition:0.4s;
+	transition-duration:0.4s;
+	font-family:'calibri light';
+	letter-spacing:3px;
 }
 
-/* Extra styles for the cancel button */
-#cncl-button {
-    padding: 14px 20px;
-    background-color: #6699ff;
+.button:hover{
+	background-color:#6495ED;
+	color: #ffffff;
 }
 
-/* Float cancel and signup buttons and add an equal width */
-.cancelbtn,.signupbtn {
-    float: left;
-    width: 100%;
+/* Red for cancel button to make it stand out */
+#cancel-btn {
+    background-color: #ff0000;
+	color:#ffffff;
+	border: 3px solid #ff0000;
+	-webkit-transition:0.4s;
+	transition-duration:0.4s;
+	
+}
+
+#cancel-btn:hover
+{
+	background-color:#ffffff;
+	color: #ff0000;
 }
 
 /* Add padding to container elements */
 .container {
-    padding: 50px;
+  margin: 80px;
+  padding: 20px 35px;
+  display: block;
+
 }
 
 /* Clear floats */
@@ -99,7 +156,7 @@ button {
 
 /* Change styles for cancel button and signup button on extra small screens */
 @media screen and (max-width: 300px) {
-    .cancelbtn, .signupbtn {
+    #cancel-btn, #signupbtn, #loginbtn {
         width: 100%;
     }
 }
