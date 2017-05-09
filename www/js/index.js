@@ -196,6 +196,66 @@
             
         })(),
 
+        'game-end-win-page':(function(){
+           
+            return {
+                init: function(page) {
+                    page.querySelector('#go-main-btn').onclick = function() {
+                        document.querySelector('#navigator')
+                                .pushPage('pages/select_mode.html');
+                    };
+
+                    page.querySelector('#go-lobby-btn').onclick = function() {
+                        document.querySelector('#navigator')
+                                .pushPage('pages/lobby.html');
+                    };
+                },
+                
+                show: function(page) {
+                    
+                },
+                
+                hide: function(page) {
+                    
+                },
+                
+                destroy: function(page) {
+                    
+                }
+            }
+            
+        })(),
+
+        'game-end-lose-page':(function(){
+           
+            return {
+                init: function(page) {
+                    page.querySelector('#go-main-btn').onclick = function() {
+                        document.querySelector('#navigator')
+                                .pushPage('pages/select_mode.html');
+                    };
+
+                    page.querySelector('#go-lobby-btn').onclick = function() {
+                        document.querySelector('#navigator')
+                                .pushPage('pages/lobby.html');
+                    };
+                },
+                
+                show: function(page) {
+                    
+                },
+                
+                hide: function(page) {
+                    
+                },
+                
+                destroy: function(page) {
+                    
+                }
+            }
+            
+        })(),
+
         'lobby-page': (function() {
             
             var _dialog;

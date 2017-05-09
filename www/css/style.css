@@ -138,7 +138,12 @@ input[type=text]:focus, input[type=password]:focus
 	background-color:#ffffff;
 	color: #ff0000;
 }
-
+#result-win-head{
+	background-color:#ffffff;
+}
+#user-id,#user-rate,#result-head,#result-win-head,#score-div,#user-score {
+	color:#6495ED;
+}
 /* Add padding to container elements */
 .container {
   margin: 80px;
