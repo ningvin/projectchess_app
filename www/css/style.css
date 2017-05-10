@@ -143,6 +143,12 @@ input[type=text]:focus, input[type=password]:focus
 #result-win-head{
 	background-color:#ffffff;
 }
+
+#user-id{
+	font-size:20px;
+	background-color: #ffffff;
+	width: 150px;
+}
 #user-id,#user-rate,#result-head,#result-win-head,#score-div,#user-score {
 	color:#6495ED;
 }
