@@ -121,6 +121,10 @@
             return {
                 init: function(page) {
                     page.querySelector('ons-toolbar .center').innerHTML = 'Game';
+                    page.querySelector('#quit-game-btn').onclick = function() {
+                        document.querySelector('#navigator')
+                                .pushPage('pages/game_end_win.html');
+                    };
                     var rendererParent = document.getElementById("renderer_parent");
                     
                     var settings = {
@@ -177,7 +181,7 @@
 
                     page.querySelector('#practice-match-btn').onclick = function() {
                         document.querySelector('#navigator')
-                                .pushPage('pages/lobby.html');
+                                .pushPage('pages/game.html');
                     };
                     document.getElementById('user-id').appendChild(app.getUser().id);
                 },
