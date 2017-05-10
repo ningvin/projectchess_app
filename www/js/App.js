@@ -9,7 +9,8 @@ function App() {
     // Constants ==========================
     //=====================================
     
-    var REST_URL = 'http://127.0.0.1:8080/';
+    var SOCKET_URL  = '127.0.0.1:8080';
+    var REST_URL    = 'http://127.0.0.1:8080/';
     
     var STATES = {
         INITIAL:            0,
@@ -28,7 +29,8 @@ function App() {
     //=====================================
     
     var _socket;
-    var _user;
+    var _user = null;
+    var _token;
     var _invited;
     
     var _isHost;
@@ -78,8 +80,8 @@ function App() {
         var i;
         var str = '(';
         for (i = 0; i < states.length; i++) {
-            str += _stateToString(_states[i]);
-            if (i < (_states.length - 1)) {
+            str += _stateToString(states[i]);
+            if (i < (states.length - 1)) {
                 str += '|';
             }
         }
@@ -148,6 +150,17 @@ function App() {
         }
     }
     
+    function _queryUser(userId, callback) {
+        _get(REST_URL + 'api/users/' + userId + '?token=' + _token,
+            function(result) {
+                if (result.status == 200) {
+                    callback(JSON.parse(result.data).user);
+                } else {
+                    callback(null);
+                }
+            });
+    }
+    
     function _setupSocket(s) {
         
         s.on('connect_error', function(err) {
@@ -195,6 +208,8 @@ function App() {
             if (!_isState(STATES.PENDING_LAUNCH))
                 return;
             
+            _state = STATES.GAME;
+            
             _opponent = msg.id;
             _isHost = false;
             _callListeners('game_launch', msg);
@@ -224,25 +239,33 @@ function App() {
          * @param {Object} data - Credentials to use for the login
          * @param {statusCallback} callback
          */
-        login: function(data, callback) {
-            var token, data;
-            
+        login: function(loginData, callback) {
             _expectState(STATES.INITIAL);
             
-            _post(REST_URL + 'login', data, function(res) {
+            _post(REST_URL + 'login', loginData, function(res) {
                 if (res.status == 200) {
-                    data = JSON.parse(res.data);
-                    _user = data.user;
-                    _socket = io.connect('127.0.0.1:8080', {
-                        query: 'auth_token=' + _user.token,
-                        forceNew: true
+                    var data = JSON.parse(res.data);
+                    console.log(data);
+                    //_user = data.user;
+                    _token = data.token;
+                    
+                    _queryUser('me', function(user) {
+                        if (user != null) {
+                            _user = user;
+                            _socket = io.connect(SOCKET_URL, {
+                                query: 'auth_token=' + _token,
+                                forceNew: true
+                            });
+                            
+                            _setupSocket(_socket);
+                            
+                            _state = STATES.LOGGED_IN;
+                            
+                            callback(true);
+                        } else {
+                            callback(false);
+                        }
                     });
-                    
-                    _setupSocket(_socket);
-                    
-                    _state = STATES.LOGGED_IN;
-                    
-                    callback(true);
                 } else {
                     callback(false);
                 }
@@ -259,6 +282,8 @@ function App() {
             
             _socket.disconnect();
             _user = null;
+            _token = null;
+            
             _state = STATES.INITIAL;
         },
         
@@ -323,6 +348,8 @@ function App() {
             _socket.emit('game_invite', {
                 id: opponent
             });
+            
+            _state = STATES.PLAYER_INVITED;
         },
         
         /**
@@ -331,12 +358,18 @@ function App() {
          */
         cancelInvite: function() {
             
+            if (_invited == null) {
+                return;
+            }
+            
             _expectState(STATES.PLAYER_INVITED);
             
             _socket.emit('game_invite_withdraw', {
                 id: _invited
             });
-            invited = null;
+            _invited = null;
+            
+            _state = STATES.LOBBY;
         },
         
         /**
@@ -347,6 +380,8 @@ function App() {
         acceptInvite: function(opponent) {
             
             _expectState(STATES.LOBBY, STATES.PLAYER_INVITED);
+            
+            _state = STATES.PENDING_LAUNCH;
             
             _socket.emit('game_response', {
                 id: opponent,
@@ -383,7 +418,9 @@ function App() {
          */
         launchGame: function() {
             
-            _expectState(STATES.PENDING_LAUNCH);
+            _expectState(STATES.PLAYER_INVITED);
+            
+            _state = STATES.GAME;
             
             _opponent = _invited;
             _isHost = true;
@@ -414,6 +451,18 @@ function App() {
             return _isHost;
         },
         
+        isLoggedIn: function() {
+            return user != null;
+        },
+        
+        getUser: function() {
+            return _user;
+        },
+        
+        queryUser: function(userId, callback) {
+            _queryUser(userId, callback);
+        },
+        
         /**
          * Query all user in the lobby.
          * @param {App~playerListCallback} callback
@@ -421,7 +470,7 @@ function App() {
         queryPlayersInLobby: function(callback) {
             var data;
             
-            _get(REST_URL + 'api/users?token=' + _user.token, function(res) {
+            _get(REST_URL + 'api/users?token=' + _token, function(res) {
                 if (res.status == 200) {
                     data = JSON.parse(res.data);
                     callback(data.users);
