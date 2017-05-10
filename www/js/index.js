@@ -168,10 +168,6 @@
 
         'select-mode-page':(function(){
 
-           var get_user= app.getUser();
-           var user_info=document.createTextNode(get_user.id);
-           //var user_info2=document.createTextNode('user id');
-
             return {
                 init: function(page) {
                     page.querySelector('#real-match-btn').onclick = function() {
@@ -183,7 +179,7 @@
                         document.querySelector('#navigator')
                                 .pushPage('pages/lobby.html');
                     };
-                    document.getElementById('user-id').appendChild(user_info);
+                    document.getElementById('user-id').appendChild(app.getUser().id);
                 },
                 
                 show: function(page) {
