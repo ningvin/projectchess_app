@@ -126,7 +126,6 @@
                                 .pushPage('pages/game_end_win.html');
                     };
                     var rendererParent = document.getElementById("renderer_parent");
-                    
                     var settings = {
                         rendererParent: rendererParent
                     };
