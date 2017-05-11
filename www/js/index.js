@@ -296,14 +296,38 @@
         'game-page': (function() {
             
             var _game;
+            var _whiteIcon;
+            var _blackIcon;
             
             var _onFinished = function(result) {
-                
+            };
+            
+            var _onPlayerTurn = function(color) {
+                if (color === 'white') {
+                    _removeClass(_blackIcon, 'selectingplayer');
+                    _addClass(_whiteIcon, 'selectingplayer');
+                } else {
+                    _removeClass(_whiteIcon, 'selectingplayer');
+                    _addClass(_blackIcon, 'selectingplayer');
+                }
+            };
+            
+            var _addClass = function(el, className) {
+                el.className += ' ' + className;
+            };
+            
+            var _removeClass = function(el, className) {
+                var reg = new RegExp('(\\s|^)' + className + '(\\s|$)');
+                el.className = el.className.replace(reg, ' ');
             };
             
             return {
                 init: function(page) {
                     page.querySelector('ons-toolbar .center').innerHTML = 'Game';
+                    page.querySelector('#quit-game-btn').onclick = function() {
+                        document.querySelector('#navigator')
+                                .pushPage('pages/game_end_win.html');
+                    };
                     var rendererParent = document.getElementById("renderer_parent");
                     var players = page.data.players;
                     var whiteIndex = (players[0].color === 'white') ? 0 : 1;
@@ -324,12 +348,18 @@
                         }
                     };
                     
-                    _game = new Game(app, settings, _onFinished);
+                    page.querySelector('#white-name').innerHTML = settings.players.white.name;
+                    page.querySelector('#black-name').innerHTML = settings.players.black.name;
+                    
+                    _whiteIcon = page.querySelector('#white-icon');
+                    _blackIcon = page.querySelector('#black-icon');
+                    
+                    _game = new Game(app, settings, _onPlayerTurn, _onFinished);
                     _game.run();
                 },
                 
                 show: function(page) {
-                    
+                    _game.fitRenderer();
                 },
                 
                 hide: function(page) {
@@ -345,7 +375,7 @@
         })(),
 
         'select-mode-page':(function(){
-           
+
             return {
                 init: function(page) {
                     page.querySelector('#real-match-btn').onclick = function() {
@@ -354,6 +384,67 @@
                     };
 
                     page.querySelector('#practice-match-btn').onclick = function() {
+                        document.querySelector('#navigator')
+                                .pushPage('pages/game.html');
+                    };
+                    document.getElementById('user-id').appendChild(app.getUser().id);
+                },
+                
+                show: function(page) {
+                    
+                },
+                
+                hide: function(page) {
+                    
+                },
+                
+                destroy: function(page) {
+                    
+                }
+            }
+            
+        })(),
+
+        'game-end-win-page':(function(){
+           
+            return {
+                init: function(page) {
+                    page.querySelector('#go-main-btn').onclick = function() {
+                        document.querySelector('#navigator')
+                                .pushPage('pages/select_mode.html');
+                    };
+
+                    page.querySelector('#go-lobby-btn').onclick = function() {
+                        document.querySelector('#navigator')
+                                .pushPage('pages/lobby.html');
+                    };
+                },
+                
+                show: function(page) {
+                    
+                },
+                
+                hide: function(page) {
+                    
+                },
+                
+                destroy: function(page) {
+                    
+                }
+            }
+            
+        })(),
+
+        'game-end-lose-page':(function(){
+           
+            return {
+                init: function(page) {
+                    page.querySelector('#go-main-btn').onclick = function() {
+                        document.querySelector('#navigator')
+                                .pushPage('pages/select_mode.html');
+                    };
+
+                    page.querySelector('#go-lobby-btn').onclick = function() {
                         document.querySelector('#navigator')
                                 .pushPage('pages/lobby.html');
                     };

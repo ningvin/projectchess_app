@@ -9,6 +9,7 @@
 .ui_element_container {
 	position: absolute;
 	width: 100%;
+    height: 100%;
 	pointer-events: none;
 }
 
@@ -149,6 +150,20 @@ input[type=text]:focus, input[type=password]:focus
 	color: #ff0000;
 }
 
+/* Set style for some div*/
+#result-win-head{
+	background-color:#ffffff;
+}
+
+#user-id{
+	font-size:20px;
+	background-color: #ffffff;
+	width: 150px;
+}
+#user-id,#user-rate,#result-head,#result-win-head,#score-div,#user-score {
+	color:#6495ED;
+}
+
 /* Add padding to container elements */
 .container {
 
@@ -167,13 +182,58 @@ input[type=text]:focus, input[type=password]:focus
     display: table;
 }
 
+/* Button style in Create Game Page */
 th .button {
     width: 55px;
 }
 
+/*  */
+.usericon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+}
+
+.blackplayer {
+    background-color: #000000;
+}
+
+.whiteplayer {
+    background-color: #ffffff;
+}
+
+.selectingplayer {
+    border: 5px solid limegreen;
+}
+
+.white_ui {
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 5%;
+}
+
+#white-icon, #white-name {
+    float: left;
+    margin: 15px;
+}
+
+.black_ui {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 5%;
+}
+
+#black-icon, #black-name {
+    float: right;
+    margin: 15px;
+}
+
 @media screen and (min-width: 220px) and (max-width: 480px) {
-    .container
-    {
+    .container {
         width:200px;
         padding:5px;
         display:block;
@@ -181,15 +241,13 @@ th .button {
         
     }
     
-    #register, #login
-    {
+    #register, #login {
         width:200px;
         padding:10px;
        
     }
     
-    #chessicon
-    {
+    #chessicon {
         width:120px;
         height:120px;
         margin-left:3px;
@@ -197,15 +255,13 @@ th .button {
         position:center;
     }
     
-    .button
-    {
+    .button {
         width:150px;
         height:45px;
         float:center;
     }
     
-    input[type=text], input[type=password]
-    {
+    input[type=text], input[type=password] {
         width:80%;
     }
 }

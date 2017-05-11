@@ -6,7 +6,7 @@
  * @param {Object} settings
  * @param {Callback} onFinished
  */
-var Game = function(app, settings, onFinished) {
+var Game = function(app, settings, onPlayerTurn, onFinished) {
     
     var _players = [];
     var _currentPlayerIndex;
@@ -24,6 +24,7 @@ var Game = function(app, settings, onFinished) {
             }
             return;
         }
+        onPlayerTurn((_currentPlayerIndex == 0) ? 'white' : 'black');
         _currentPlayer.selectMove(_onMoveSelected);
     };
     
@@ -80,6 +81,10 @@ var Game = function(app, settings, onFinished) {
             }
             _board = new BoardView(_chess, parent, _createPlayers);
             _camControls = new CameraControls(_board, parent);
+        },
+        
+        fitRenderer: function() {
+            _board.fitRenderer();
         },
         
         /**
