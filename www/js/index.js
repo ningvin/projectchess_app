@@ -155,8 +155,8 @@
         
         'create-game-page': (function() {
             
-            var _players = [];
-            var _infoCards = [];
+            var _players;
+            var _infoCards;
             
             var _gameSettings;
             var _isLocalGame;
@@ -262,6 +262,8 @@
                     page.querySelector('ons-toolbar .center').innerHTML = 'Create Game';
                     
                     _isLocalGame = page.data.isLocalGame;
+                    _players = [];
+                    _infoCards = [];
                     
                     startButton = page.querySelector('#start-btn');
                     startButton.disabled = !_isLocalGame && !app.isHost();
@@ -286,7 +288,6 @@
                 },
                 
                 destroy: function(page) {
-                    
                 }
             }
             
