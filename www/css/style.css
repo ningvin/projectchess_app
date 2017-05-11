@@ -76,7 +76,8 @@ h3
 }
 
 /* Adjusting size/style of elements in containers */
-#register, #login, #game-mode
+#register, #login, #game-mode, .bluecontainer
+
 {
 	display:block;
 	background: rgba(204, 224, 255, 0.9);
@@ -166,7 +167,10 @@ input[type=text]:focus, input[type=password]:focus
     display: table;
 }
 
-/* Change styles on mobile devices/smaller screens */
+th .button {
+    width: 55px;
+}
+
 @media screen and (min-width: 220px) and (max-width: 480px) {
     .container
     {

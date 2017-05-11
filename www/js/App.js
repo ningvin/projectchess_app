@@ -49,9 +49,11 @@ function App() {
         'chat': [],
         'move': [],
         'disconnect': [],
+        'game_create': [],
         'game_launch': [],
         'game_launch_cancel': [],
-        'game_start': []
+        'game_start': [],
+        'swap_colors': []
     };
     
     //=====================================
@@ -203,15 +205,31 @@ function App() {
             _callListeners('game_invite_withdraw', msg);
         });
         
+        s.on('game_create', function(msg) {
+            _opponent = {
+                id: msg.id,
+                alias: msg.alias
+            };
+            _isHost = false;
+            console.log('[s]: game_create');
+            _callListeners('game_create', msg);
+        });
+        
         s.on('game_launch', function(msg) {
             
+            /*
             if (!_isState(STATES.PENDING_LAUNCH))
                 return;
-            
+            */
             _state = STATES.GAME;
             
-            _opponent = msg.id;
+            /*
+            _opponent = {
+                id: msg.id,
+                alias: msg.alias
+            };
             _isHost = false;
+            */
             _callListeners('game_launch', msg);
         });
         
@@ -229,6 +247,11 @@ function App() {
                 return;
             
             _callListeners('move', msg);
+        });
+        
+        s.on('swap_colors', function(msg) {
+            console.log('[s] swap colors');
+            _callListeners('swap_colors', msg);
         });
     }
     
@@ -326,7 +349,7 @@ function App() {
          */
         leaveLobby: function() {
             
-            _expectState(STATES.LOBBY, STATES.PLAYER_INVITED);
+            _expectState(STATES.LOBBY, STATES.PLAYER_INVITED, STATES.PENDING_LAUNCH);
             
             _socket.emit('leave_lobby', {
                 id: _user.id
@@ -346,7 +369,7 @@ function App() {
             
             _invited = opponent;
             _socket.emit('game_invite', {
-                id: opponent
+                id: opponent.id
             });
             
             _state = STATES.PLAYER_INVITED;
@@ -365,7 +388,7 @@ function App() {
             _expectState(STATES.PLAYER_INVITED);
             
             _socket.emit('game_invite_withdraw', {
-                id: _invited
+                id: _invited.id
             });
             _invited = null;
             
@@ -418,14 +441,14 @@ function App() {
          */
         launchGame: function() {
             
-            _expectState(STATES.PLAYER_INVITED);
+            //_expectState(STATES.PLAYER_INVITED);
             
             _state = STATES.GAME;
             
-            _opponent = _invited;
-            _isHost = true;
+            //_opponent = _invited;
+            //_isHost = true;
             _socket.emit('game_launch', {
-                id: _invited
+                id: _opponent.id
             });
         },
         
@@ -438,7 +461,7 @@ function App() {
             _expectState(STATES.GAME);
             
             _socket.emit('move', {
-                id: _opponent,
+                id: _opponent.id,
                 move: move
             });
         },
@@ -451,12 +474,40 @@ function App() {
             return _isHost;
         },
         
+        swapColors: function() {
+            if (_isState(STATES.INITIAL)) {
+                return true;
+            } else {
+                _socket.emit('swap_colors', {
+                    id: _opponent.id
+                });
+                return _isHost;
+            }
+        },
+        
         isLoggedIn: function() {
-            return user != null;
+            return _user != null;
         },
         
         getUser: function() {
             return _user;
+        },
+        
+        /*
+        queryOpponent: function(callback) {
+            _get(REST_URL + 'api/users/' + _opponent + '?token=' + _token,
+            function(result) {
+                if (result.status == 200) {
+                    callback(JSON.parse(result.data).user);
+                } else {
+                    callback(null);
+                }
+            });
+        },
+        */
+        
+        getOpponent: function() {
+            return _opponent;
         },
         
         queryUser: function(userId, callback) {
@@ -484,7 +535,11 @@ function App() {
          * 
          */
         createGame: function() {
-            
+            _opponent = _invited;
+            _isHost = true;
+            _socket.emit('game_create', {
+                id: _opponent.id
+            });
         },
         
         /**
