@@ -5,6 +5,7 @@
     </ons-toolbar>
 	<!-- This is the page after 'register' button clicked-->
     <center>
+        <!--
         <form action="/signup.php">
 		
             <div class="container" id="register">
@@ -31,5 +32,31 @@
             </div>
             </div>
         </form>
+        -->
+        <div class="container" id="register">
+		
+			<img src="img/game.png" id="chessicon"></img>
+            
+            <label><b>Full Name</b></label>
+            <input id="fullname" type="text" placeholder="Enter full name" name="fullname" />
+            
+            <label><b>Username</b></label>
+            <input id="username" type="text" placeholder="Enter username" name="username" />
+            
+            <label><b>Email</b></label>
+            <input id="email" type="text" placeholder="Enter email address" name="email" />
+
+            <label><b>Password</b></label>
+            <input id="password" type="password" placeholder="Enter password" name="password" />
+
+            <input type="checkbox" checked="checked" /> Keep me logged in
+            <br />
+			<br />
+			
+            <div class="clearfix">
+                <ons-button id="cancel-btn">Cancel</ons-button>
+                <ons-button id="signupbtn">Sign Up</ons-button>
+            </div>
+        </div>
     </center>
 </ons-page>
