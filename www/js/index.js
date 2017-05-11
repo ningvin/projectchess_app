@@ -12,19 +12,50 @@
             
             return {
                 init: function(page) {
-                    page.querySelector('#loginbtn').onclick = function() {
-                        document.querySelector('#navigator')
-                                .pushPage('pages/login.html');
+                    page.querySelector('#lobby-btn').onclick = function() {
+                        var nav = document.querySelector('#navigator');
+                        if (app.isLoggedIn()) {
+                            nav.pushPage('pages/lobby.html');
+                        } else {
+                            nav.pushPage('pages/login.html',
+                                {
+                                    data: {
+                                        target: 'pages/lobby.html'
+                                    }
+                                }
+                            );
+                        }
                     };
 
+                    page.querySelector('#local-btn').onclick = function() {
+                        document.querySelector('#navigator')
+                                .pushPage('pages/create_game.html',
+                                    {
+                                        data: {
+                                            isLocalGame: true
+                                        }
+                                    }
+                                );
+                    };
+                    
+                    /*
                     page.querySelector('#regbtn').onclick = function() {
                         document.querySelector('#navigator')
                                 .pushPage('pages/register.html');
                     };
+                    */
                 },
                 
                 show: function(page) {
-                    
+                    if (!app.isLoggedIn()) {
+                        console.log('not logged in');
+                        document.querySelector('#account-mgmt-icon')
+                            .setAttribute('icon', 'ion-ios-person-outline, material:md-account-o');
+                    } else {
+                        console.log('logged in');
+                        document.querySelector('#account-mgmt-icon')
+                            .setAttribute('icon', 'ion-ios-person, material:md-account');
+                    }
                 },
                 
                 hide: function(page) {
@@ -80,8 +111,16 @@
                         app.login(data, function(result) {
                             dialog.hide();
                             if (result) {
-                                document.querySelector('#navigator')
-                                        .pushPage('pages/select_mode.html');
+                                if (_page.data != null) {
+                                    document.querySelector('#navigator')
+                                        .replacePage(_page.data.target);
+                                    _page.data = null;
+                                } else {
+                                    console.log(_page);
+                                    document.querySelector('#navigator')
+                                        .pushPage('pages/main_menu.html');
+                                }
+                                
                             } else {
                                 ons.notification.alert('Login failed!');
                             }
@@ -114,9 +153,153 @@
             
         })(),
         
+        'create-game-page': (function() {
+            
+            var _players;
+            var _infoCards;
+            
+            var _gameSettings;
+            var _isLocalGame;
+            
+            var _applyColors = function() {
+                _infoCards[0].color.innerHTML = _players[0].color;
+                _infoCards[1].color.innerHTML = _players[1].color;
+            };
+            
+            var _swapColors = function() {
+                var c = _players[0].color;
+                _players[0].color = _players[1].color;
+                _players[1].color = c;
+                
+                _applyColors();
+            };
+            
+            var _createLocalPlayerData = function(index, color) {
+                return {
+                    name: 'Player ' + (index + 1).toString(),
+                    color: color,
+                    type: 'local'
+                };
+            };
+            
+            var _createOnlinePlayerData = function(color, alias, id) {
+                return {
+                    name: alias,
+                    color: color,
+                    id: id,
+                    type: 'network'
+                };
+            };
+            
+            var _setupInfoCard = function(page, index) {
+                var prefix = 'player' + (index + 1).toString();
+                var card = {};
+                
+                card.color = page.querySelector('#' + prefix + '-color');
+                card.type = page.querySelector('#' + prefix + '-type');
+                var swapBtn = page.querySelector('#' + prefix + '-swap-btn');
+                
+                if (_isLocalGame) {
+                    card.type.innerHTML = 'Local Player';
+                    card.name = page.querySelector('#' + prefix + '-name-input');
+                    card.name.value = _players[index].name;
+                    page.querySelector('#' + prefix + '-name').style.display = 'none';
+                    swapBtn.onclick = _swapColors;
+                } else {
+                    card.type.innerHTML = 'Online Player';
+                    card.name = page.querySelector('#' + prefix + '-name');
+                    card.name.innerHTML = _players[index].name;
+                    page.querySelector('#' + prefix + '-name-input').style.display = 'none';
+                    
+                    if (app.isHost()) {
+                        swapBtn.onclick = function() {
+                            if (app.swapColors()) {
+                                _swapColors();
+                            }
+                        };
+                    } else {
+                        swapBtn.style.display = 'none';
+                    }
+                }
+                
+                return card;
+            };
+            
+            var _setupInfoCards = function(page) {
+                _infoCards.push(_setupInfoCard(page, 0));
+                _infoCards.push(_setupInfoCard(page, 1));
+            };
+            
+            var _initializePlayerData = function(data) {
+                if (_isLocalGame) {
+                    _players.push(_createLocalPlayerData(0, 'white'));
+                    _players.push(_createLocalPlayerData(1, 'black'));
+                } else {
+                    _players.push(_createOnlinePlayerData('white'
+                            , data.users[0].alias
+                            , data.users[0].id));
+                    _players.push(_createOnlinePlayerData('black'
+                            , data.users[1].alias
+                            , data.users[1].id));
+                }
+            };
+            
+            var _launchGame = function() {
+                document.querySelector('#navigator')
+                        .replacePage('pages/game.html',
+                            {
+                                data: {
+                                    players: _players,
+                                    isLocalGame: _isLocalGame
+                                }
+                            }
+                        );
+            };
+            
+            return {
+                init: function(page) {
+                    var startButton;
+                    page.querySelector('ons-toolbar .center').innerHTML = 'Create Game';
+                    
+                    _isLocalGame = page.data.isLocalGame;
+                    _players = [];
+                    _infoCards = [];
+                    
+                    startButton = page.querySelector('#start-btn');
+                    startButton.disabled = !_isLocalGame && !app.isHost();
+                    startButton.onclick = function() {
+                        if (!_isLocalGame)
+                            app.launchGame();
+                        _launchGame();
+                    };
+                    
+                    _initializePlayerData(page.data);
+                    _setupInfoCards(page);
+                },
+                
+                show: function(page) {
+                    app.on('game_launch', _launchGame);
+                    app.on('swap_colors', _swapColors);
+                },
+                
+                hide: function(page) {
+                    app.removeListener('game_launch', _launchGame);
+                    app.removeListener('swap_colors', _swapColors);
+                },
+                
+                destroy: function(page) {
+                }
+            }
+            
+        })(),
+        
         'game-page': (function() {
             
             var _game;
+            
+            var _onFinished = function(result) {
+                
+            };
             
             return {
                 init: function(page) {
@@ -126,30 +309,26 @@
                                 .pushPage('pages/game_end_win.html');
                     };
                     var rendererParent = document.getElementById("renderer_parent");
-                    var settings = {
-                        rendererParent: rendererParent
-                    };
-                    if (app.isHost()) {
-                        settings.players = {
-                            white: {
-                                type: 'local'
-                            },
-                            black: {
-                                type: 'network'
-                            }
-                        };
-                    } else {
-                        settings.players = {
-                            white: {
-                                type: 'network'
-                            },
-                            black: {
-                                type: 'local'
-                            }
-                        };
+                    var players = page.data.players;
+                    var whiteIndex = (players[0].color === 'white') ? 0 : 1;
+                    var blackIndex = 1 - whiteIndex;
+                    if (!page.data.isLocalGame) {
+                        // Online Game, but one of the players is us
+                        if (app.isHost()) {
+                            players[0].type = 'local';
+                        } else {
+                            players[1].type = 'local';
+                        }
                     }
+                    var settings = {
+                        rendererParent: rendererParent,
+                        players: {
+                            white: players[whiteIndex],
+                            black: players[blackIndex]
+                        }
+                    };
                     
-                    _game = new Game(app, settings);
+                    _game = new Game(app, settings, _onFinished);
                     _game.run();
                 },
                 
@@ -279,13 +458,13 @@
             
             var _handleGameInvite = function(msg) {
                 ons.notification.confirm({
-                    message: 'Invitation from ' + msg.userId,
+                    message: 'Invitation from ' + msg.alias,
                     buttonLabels: ['Decline', 'Accept'],
                     callback: function(selected) {
                         if (selected == 1) {
-                            _acceptInvite(msg.userId);
+                            _acceptInvite(msg.id);
                         } else {
-                            app.declineInvite(msg.userId);
+                            app.declineInvite(msg.id);
                         }
                     }
                 });
@@ -303,24 +482,67 @@
                 console.log('Response:');
                 console.log(msg);
                 if (msg.accepted) {
-                    app.launchGame();
+                    //app.launchGame();
+                    app.createGame();
                     document.querySelector('#navigator')
-                            .pushPage('pages/game.html');
+                            .pushPage('pages/create_game.html', {
+                                data: _createGameData()
+                            });
                 } else {
-                    ons.notification.alert(msg.id + 'declined your invitation!');
+                    ons.notification.alert(msg.id + ' declined your invitation!');
                 }
             };
             
             var _handleJoinLobby = function(msg) {
-                _players.push(msg.id);
+                _players.push(msg);
                 _list.refresh();
             };
             
+            var _findPlayerInLobby = function(id) {
+                var i = 0;
+                while (i < _players.length && _players[i].id !== id)
+                    i++;
+                if (i >= _players.length) {
+                    return -1;
+                } else {
+                    return i;
+                }
+            };
+            
             var _handleLeaveLobby = function(msg) {
-                var i = _players.indexOf(msg.id);
+                var i = _findPlayerInLobby(msg.id);
                 if (i != -1)
                     _players.splice(i, 1);
                 _list.refresh();
+            };
+            
+            var _handleGameCreate = function(msg) {
+                console.log('Handle  game creat');
+                _dialog.hide();
+                _dialog = null;
+                document.querySelector('#navigator')
+                        .pushPage('pages/create_game.html', {
+                            data: _createGameData()
+                        });
+            };
+            
+            var _createGameData = function() {
+                var user = app.getUser();
+                var opponent = app.getOpponent();
+                var users = [];
+                if (app.isHost()) {
+                    users[0] = user;
+                    users[1] = opponent;
+                } else {
+                    users[0] = opponent;
+                    users[1] = user;
+                }
+                var data = {
+                    isLocalGame: false,
+                    users: users
+                };
+                console.log(data);
+                return data;
             };
             
             var _reloadList = function() {
@@ -337,9 +559,23 @@
                 });
             };
             
+            var _sendInvite = function(player) {
+                app.cancelInvite();
+                app.sendInvite(player);
+                var invited = document.querySelector('#invited-player');
+                invited.querySelector('.center').innerHTML = player.alias;
+                invited.style.display = 'inline';
+            };
+            
+            var _sendCancelInvite = function() {
+                app.cancelInvite();
+                document.querySelector('#invited-player')
+                        .style.display = 'none';
+            };
+            
             var _listDelegate = {
                 createItemContent: function(i) {
-                    var id = _players[i];
+                    var player = _players[i];
                     var item = ons._util.createElement(
                         '<ons-list-item tappable="">\
                             <div class="left">\
@@ -348,14 +584,18 @@
                                 </ons-icon>\
                             </div>\
                             <div class="center">'
-                                + id +
+                                + ((player != null) ? player.alias : "")  +
                             '</div>\
+                            <ons-button class="right">\
+                                Invite\
+                            </ons-button>\
                         </ons-list-item>'
                     );
                     
-                    item.onclick = function() {
-                        app.sendInvite(id);
-                    };
+                    item.querySelector('ons-button')
+                        .onclick = function() {
+                            _sendInvite(player);
+                        };
                     
                     return item;
                 },
@@ -369,10 +609,12 @@
                 init: function(page) {
                     _list = page.querySelector('#lobby-player-list');
                     _list.delegate = _listDelegate;
+                    page.querySelector('#invited-player').style.display = 'none';
                 },
                 
                 show: function(page) {
                     _reloadList();
+                    app.on('game_create', _handleGameCreate);
                     app.on('game_invite', _handleGameInvite);
                     app.on('game_launch', _handleGameLaunch);
                     app.on('game_response', _handleGameResponse);
@@ -381,6 +623,7 @@
                 },
                 
                 hide: function(page) {
+                    app.removeListener('game_create', _handleGameCreate);
                     app.removeListener('game_invite', _handleGameInvite);
                     app.removeListener('game_launch', _handleGameLaunch);
                     app.removeListener('game_response', _handleGameResponse);

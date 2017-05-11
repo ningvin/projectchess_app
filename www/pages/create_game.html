@@ -1,0 +1,69 @@
+<ons-page id="create-game-page">
+    <ons-toolbar id="header">
+        <div class="left"><ons-back-button>Back</ons-back-button></div>
+        <div class="center"></div>
+    </ons-toolbar>
+	<center>
+		<div class="container bluecontainer" id="player-1">
+			<table>
+                <tr>
+                    <th>Color:</th>
+                    <th id="player1-color"><p>white</p></th>
+                    <th>
+                        <ons-button id="player1-swap-btn">
+                            <ons-icon
+                                icon="ion-arrow-swap, material:md-swap"
+                                style="color: black;">
+                            </ons-icon>
+                        </ons-button>
+                    </th>
+                </tr>
+                <tr>
+                    <th>Type:</th>
+                    <th>
+                        <p id="player1-type"></p>
+                    </th>
+                </tr>
+                <tr>
+                    <th>Name:</th>
+                    <th>
+                        <input id="player1-name-input" type="text" placeholder="Player 1" name="player1-name" />
+                        <p id="player1-name"></p>
+                    </th>
+                </tr>
+            </table>
+		</div>
+        <div class="container bluecontainer" id="player-2">
+			<table>
+                <tr>
+                    <th>Color:</th>
+                    <th id="player2-color">black</th>
+                    <th>
+                        <ons-button id="player2-swap-btn">
+                            <ons-icon
+                                icon="ion-arrow-swap, material:md-swap"
+                                style="color: black;">
+                            </ons-icon>
+                        </ons-button>
+                    </th>
+                </tr>
+                <tr>
+                    <th>Type:</th>
+                    <th>
+                        <p id="player2-type"></p>
+                    </th>
+                </tr>
+                <tr>
+                    <th>Name:</th>
+                    <th>
+                        <input id="player2-name-input" type="text" placeholder="Player2" name="player2-name" />
+                        <p id="player2-name"></p>
+                    </th>
+                </tr>
+            </table>
+		</div>
+        <div class="container bluecontainer">
+			<ons-button id="start-btn">Start Game</ons-button>
+		</div>
+	</center>
+</ons-page>

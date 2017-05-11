@@ -56,26 +56,34 @@
 	background-attachment:fixed;
 	position:fixed;
 }
+
+/* Styles for instruction text */
+h3
+{
+	background:rgba(204, 224, 255, 0.9);
+	color:#fff;
+	text-align:center;
+}
+
 /* Basic settings for chess icon*/
 #chessicon
 {
-	width:150px;
-	height:150px;
-	margin-top:60px;
-	margin-left:50px;
-	margin-right:50px;
+	width:30%;
+	height:30%;
+	padding-bottom:20px;
+	margin:auto;
+	display:block;
 }
 
-/* Adjusting size of register/login fields*/
-#register, #login
+/* Adjusting size/style of elements in containers */
+#register, #login, #game-mode, .bluecontainer
+
 {
-	margin-top:20px;
+	display:block;
 	background: rgba(204, 224, 255, 0.9);
 	border: none;
 	border-radius:20px;
-	opacity:0.8;
 	width:25%;
-	height:20%;
 }
 
 /* Full-width input fields */
@@ -83,7 +91,7 @@ input[type=text], input[type=password]
 {
 	display:block;
 	margin-bottom: 20px;
-	width:50%;
+	width:100%;
 	height:30px;
 	text-align:center;
 	border: 3px solid #ccc;
@@ -110,12 +118,14 @@ input[type=text]:focus, input[type=password]:focus
     color: #6495ED;
 	margin: 8px 0;
     cursor: pointer;
-    width: 200px;
+    width: 100%;
 	display:block;
 	-webkit-transition:0.4s;
 	transition-duration:0.4s;
 	font-family:'calibri light';
 	letter-spacing:3px;
+	padding:1px;
+	text-align:center;
 }
 
 .button:hover{
@@ -155,10 +165,13 @@ input[type=text]:focus, input[type=password]:focus
 
 /* Add padding to container elements */
 .container {
-  margin: 80px;
+
+  width:30%;
   padding: 20px 35px;
   display: block;
-
+  margin-top:50px;
+  position:relative;
+	
 }
 
 /* Clear floats */
@@ -168,9 +181,45 @@ input[type=text]:focus, input[type=password]:focus
     display: table;
 }
 
-/* Change styles for cancel button and signup button on extra small screens */
-@media screen and (max-width: 300px) {
-    #cancel-btn, #signupbtn, #loginbtn {
-        width: 100%;
+th .button {
+    width: 55px;
+}
+
+@media screen and (min-width: 220px) and (max-width: 480px) {
+    .container
+    {
+        width:200px;
+        padding:5px;
+        display:block;
+        height:50px;
+        
+    }
+    
+    #register, #login
+    {
+        width:200px;
+        padding:10px;
+       
+    }
+    
+    #chessicon
+    {
+        width:120px;
+        height:120px;
+        margin-left:3px;
+        margin-right:5px;
+        position:center;
+    }
+    
+    .button
+    {
+        width:150px;
+        height:45px;
+        float:center;
+    }
+    
+    input[type=text], input[type=password]
+    {
+        width:80%;
     }
 }

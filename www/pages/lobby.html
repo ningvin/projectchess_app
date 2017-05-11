@@ -3,11 +3,29 @@
         <div class="left"><ons-back-button>Back</ons-back-button></div>
         <div class="center">Lobby</div>
     </ons-toolbar>
-      
-    <ons-list>
- 
-        <ons-lazy-repeat id="lobby-player-list"></ons-lazy-repeat>
-        
-    </ons-list>
+    <center>
+        <div class="container">
+            <h3>Please select an opponent.</h3>
+            <ons-list>
 
+                <ons-lazy-repeat id="lobby-player-list"></ons-lazy-repeat>
+
+            </ons-list>
+        </div>
+	</center>
+    <ons-bottom-toolbar>
+        <div id="invited-player">
+            <div class="left">
+                <ons-icon icon="md-face"
+                    class="list-item__icon">
+                </ons-icon>
+            </div>
+            <div class="center">
+                Player
+            </div>
+            <ons-button class="right">
+                Uninvite
+            </ons-button>
+        </div>
+    </ons-bottom-toolbar>
 </ons-page>
