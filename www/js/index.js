@@ -296,9 +296,29 @@
         'game-page': (function() {
             
             var _game;
+            var _whiteIcon;
+            var _blackIcon;
             
             var _onFinished = function(result) {
-                
+            };
+            
+            var _onPlayerTurn = function(color) {
+                if (color === 'white') {
+                    _removeClass(_blackIcon, 'selectingplayer');
+                    _addClass(_whiteIcon, 'selectingplayer');
+                } else {
+                    _removeClass(_whiteIcon, 'selectingplayer');
+                    _addClass(_blackIcon, 'selectingplayer');
+                }
+            };
+            
+            var _addClass = function(el, className) {
+                el.className += ' ' + className;
+            };
+            
+            var _removeClass = function(el, className) {
+                var reg = new RegExp('(\\s|^)' + className + '(\\s|$)');
+                el.className = el.className.replace(reg, ' ');
             };
             
             return {
@@ -328,12 +348,18 @@
                         }
                     };
                     
-                    _game = new Game(app, settings, _onFinished);
+                    page.querySelector('#white-name').innerHTML = settings.players.white.name;
+                    page.querySelector('#black-name').innerHTML = settings.players.black.name;
+                    
+                    _whiteIcon = page.querySelector('#white-icon');
+                    _blackIcon = page.querySelector('#black-icon');
+                    
+                    _game = new Game(app, settings, _onPlayerTurn, _onFinished);
                     _game.run();
                 },
                 
                 show: function(page) {
-                    
+                    _game.fitRenderer();
                 },
                 
                 hide: function(page) {

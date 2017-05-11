@@ -3,30 +3,32 @@
         <div class="left"><ons-back-button>Back</ons-back-button></div>
         <div class="center"></div>
         <div class="right">
-            <ons-toolbar-button>
-                <ons-icon icon="ion-navicon, material:md-menu" />
+            <!--
+            <ons-toolbar-button id="quit-game-btn">
+                Quit
             </ons-toolbar-button>
+            -->
+            <ons-button id="quit-game-btn">Quit</ons-button>
         </div>
     </ons-toolbar>
-    <center>
-    <br>
-    <img src="img/user.png" id="user-icon" style="width: 50px;height: 50px"></img>
-    <div id="user-id">Player1</div>
-    <div id="user-rate"></div>
-    <br>
 
-    <div id="renderer_parent" style="width: 500px;height: 500px;">
-        <p style="text-align: center; " class="ui_element_container">
-            <!--
-            <ons-button id="alert_button" class="ui_element">Click me!</ons-button>
-            -->
-        </p>
+    <div id="renderer_parent">
+        <div class="ui_element_container">
+        
+            <div class="ui_element white_ui">
+                <img class="ui_element usericon whiteplayer" src="img/user.png" id="white-icon"></img>
+                <p id="white-name">Player 1</p>
+            </div>
+            
+            <div class="ui_element black_ui">
+                <img class="ui_element usericon blackplayer" src="img/user.png" id="black-icon"></img>
+                <p id="black-name">Player 2</p>
+            </div>
+        </div>
     </div>
-    <br>
-    <img src="img/user2.png" style="width: 50px;height: 50px"></img>
-    <div id="user-id">Player2</div>
-    <div id="user-rate"></div>
-
-    <ons-button id="quit-game-btn">Quit</ons-button>
+    <!--
+    <center>
+        <ons-button id="quit-game-btn">Quit</ons-button>
     </center>
+    -->
 </ons-page>
