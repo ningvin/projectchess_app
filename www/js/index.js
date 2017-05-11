@@ -72,12 +72,41 @@
         
         'register-page': (function() {
             
+            var _page;
+            
+            var _handleRegistration = function() {
+                var data = {
+                    alias: _page.querySelector('#username').value,
+                    password: _page.querySelector('#password').value,
+                    email: _page.querySelector('#email').value,
+                    name: _page.querySelector('#fullname').value
+                };
+                ons.createDialog('dialogs/login_progress_dialog.html')
+                    .then(function(dialog) {
+                        dialog.querySelector('.dialog-caption').innerHTML = 'Signing up...';
+                        dialog.show();
+                        app.register(data, function(result) {
+                            dialog.hide();
+                            if (result) {
+                                document.querySelector('#navigator')
+                                        .popPage();
+                            } else {
+                                ons.notification.alert('Signing up failed!');
+                            }
+                        });
+                    });
+            };
+            
             return {
                 init: function(page) {
+                    _page = page;
                     page.querySelector('ons-toolbar .center').innerHTML = 'Register';
                     page.querySelector('#cancel-btn').onclick = function() {
                         document.querySelector('#navigator').popPage();
                     };
+                    page.querySelector('#signupbtn').onclick = _handleRegistration;
+                    page.querySelector('#username').value = page.data.alias;
+                    page.querySelector('#password').value = page.data.password;
                 },
                 
                 show: function(page) {
@@ -132,8 +161,19 @@
                 init: function(page) {
                     _page = page;
                     page.querySelector('ons-toolbar .center').innerHTML = 'Login';
+                    /*
                     page.querySelector('#cancel-btn').onclick = function() {
                         document.querySelector('#navigator').popPage();
+                    };
+                    */
+                    page.querySelector('#register-btn').onclick = function() {
+                        document.querySelector('#navigator')
+                                .pushPage('pages/register.html', {
+                                    data: {
+                                        alias: page.querySelector('#username').value,
+                                        password: page.querySelector('#password').value
+                                    }
+                                });
                     };
                     page.querySelector('#loginbtn').onclick = _handleLogin;
                 },
