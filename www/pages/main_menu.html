@@ -1,13 +1,22 @@
 <ons-page id="main-menu">
     <ons-toolbar id="header">
         <div class="center">Project Chess</div>
-	<!-- This is the start up screen of the app. Choose to login/register -->
+        <div class="right">
+            <ons-toolbar-button id="account-mgmt-btn">
+                <ons-icon
+                    id="account-mgmt-icon"
+                    icon="ion-ios-person-outline, material:md-account-o"
+                    style="color: white;">
+                </ons-icon>
+            </ons-toolbar-button>
+        </div>
     </ons-toolbar>
 	<center>
 		<div class="container" id="main-menu">
 			<img src="img/game.png" id="chessicon"></img>
-			<ons-button id="loginbtn">Log In</ons-button>
-			<ons-button id="regbtn">Register</ons-button>
+			<ons-button id="lobby-btn">Online Lobby</ons-button>
+			<ons-button id="local-btn">Local Game</ons-button>
+			<ons-button id="options-btn">Options</ons-button>
 		</div>
 	</center>
 </ons-page>

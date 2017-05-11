@@ -4,8 +4,9 @@
  * @constructor
  * @param {App} app 
  * @param {Object} settings
+ * @param {Callback} onFinished
  */
-var Game = function(app, settings) {
+var Game = function(app, settings, onFinished) {
     
     var _players = [];
     var _currentPlayerIndex;
@@ -15,6 +16,14 @@ var Game = function(app, settings) {
     var _board;
     
     var _delegatePlayer = function() {
+        if (_chess.game_over()) {
+            if (_chess.in_checkmate()) {
+                onFinished('win_' + (_chess.turn() === 'w') ? 'black' : 'white');
+            } else {
+                onFinished('draw');
+            }
+            return;
+        }
         _currentPlayer.selectMove(_onMoveSelected);
     };
     
