@@ -765,6 +765,10 @@ var BoardView = function (chess, domElement, onFinishLoadingCallback) {
 			_applyBounds(x, y, width, height);
 		},
         
+        fitRenderer: function() {
+            _onWindowResize();
+        },
+        
         /**
          * Rotate the camera to the next spot in the given direction
          * @param {DIRECTIONS} dir - The direction to move the camera
