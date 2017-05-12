@@ -187,6 +187,14 @@ th .button {
     width: 55px;
 }
 
+#pgn-string {
+    -moz-user-select: text;
+    -khtml-user-select: text;
+    -webkit-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
 /*  */
 .usericon {
     width: 50px;
