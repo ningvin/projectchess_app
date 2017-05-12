@@ -284,7 +284,27 @@
                 }
             };
             
+            var _updatePlayerNames = function() {
+                if (!_isLocalGame)
+                    return;
+                
+                var name0 = _infoCards[0].name.value.trim();
+                if (name0 === '') {
+                    name0 = 'Player 1';
+                }
+                var name1 = _infoCards[1].name.value.trim();
+                if (name1 === '') {
+                    name1 = 'Player 2';
+                }
+                if (name0 === name1) {
+                    name1 += ' (copy)';
+                }
+                _players[0].name = name0;
+                _players[1].name = name1;
+            };
+            
             var _launchGame = function() {
+                _updatePlayerNames();
                 document.querySelector('#navigator')
                         .replacePage('pages/game.html',
                             {
