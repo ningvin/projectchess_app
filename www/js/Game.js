@@ -87,6 +87,14 @@ var Game = function(app, settings, onPlayerTurn, onFinished) {
             _board.fitRenderer();
         },
         
+        getPGN: function() {
+            return _chess.pgn();
+        },
+        
+        getCurrentPlayersColor: function() {
+            return (_currentPlayerIndex == 0) ? 'white' : 'black';
+        },
+        
         /**
          * Remove any registered event listeners.
          */

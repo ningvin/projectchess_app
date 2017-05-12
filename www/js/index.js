@@ -284,7 +284,27 @@
                 }
             };
             
+            var _updatePlayerNames = function() {
+                if (!_isLocalGame)
+                    return;
+                
+                var name0 = _infoCards[0].name.value.trim();
+                if (name0 === '') {
+                    name0 = 'Player 1';
+                }
+                var name1 = _infoCards[1].name.value.trim();
+                if (name1 === '') {
+                    name1 = 'Player 2';
+                }
+                if (name0 === name1) {
+                    name1 += ' (copy)';
+                }
+                _players[0].name = name0;
+                _players[1].name = name1;
+            };
+            
             var _launchGame = function() {
+                _updatePlayerNames();
                 document.querySelector('#navigator')
                         .replacePage('pages/game.html',
                             {
@@ -338,8 +358,20 @@
             var _game;
             var _whiteIcon;
             var _blackIcon;
+            var _players;
+            var _whiteIndex;
+            var _blackIndex;
             
             var _onFinished = function(result) {
+                document.querySelector('#navigator')
+                        .replacePage('pages/game_end.html', {
+                            data: {
+                                result: result,
+                                pgn: _game.getPGN(),
+                                white: _players[_whiteIndex].name,
+                                black: _players[_blackIndex].name
+                            }
+                        });
             };
             
             var _onPlayerTurn = function(color) {
@@ -361,30 +393,43 @@
                 el.className = el.className.replace(reg, ' ');
             };
             
+            var _handleSurrender = function(msg) {
+                var winner = (_players[0].id === msg.id) ? _players[1] : _players[0];
+                _onFinished('win_' + winner.color);
+            };
+            
             return {
                 init: function(page) {
                     page.querySelector('ons-toolbar .center').innerHTML = 'Game';
                     page.querySelector('#quit-game-btn').onclick = function() {
-                        document.querySelector('#navigator')
-                                .pushPage('pages/game_end_win.html');
+                        if (!page.data.isLocalGame) {
+                            app.surrender();
+                            _handleSurrender(app.getUser());
+                        } else {
+                            if (_game.getCurrentPlayersColor() === 'white') {
+                                _onFinished('win_black');
+                            } else {
+                                _onFinished('win_white');
+                            }
+                        }
                     };
                     var rendererParent = document.getElementById("renderer_parent");
-                    var players = page.data.players;
-                    var whiteIndex = (players[0].color === 'white') ? 0 : 1;
-                    var blackIndex = 1 - whiteIndex;
+                    _players = page.data.players;
+                    _whiteIndex = (_players[0].color === 'white') ? 0 : 1;
+                    _blackIndex = 1 - _whiteIndex;
                     if (!page.data.isLocalGame) {
                         // Online Game, but one of the players is us
                         if (app.isHost()) {
-                            players[0].type = 'local';
+                            _players[0].type = 'local';
                         } else {
-                            players[1].type = 'local';
+                            _players[1].type = 'local';
                         }
                     }
                     var settings = {
                         rendererParent: rendererParent,
                         players: {
-                            white: players[whiteIndex],
-                            black: players[blackIndex]
+                            white: _players[_whiteIndex],
+                            black: _players[_blackIndex]
                         }
                     };
                     
@@ -400,15 +445,17 @@
                 
                 show: function(page) {
                     _game.fitRenderer();
+                    app.on('surrender', _handleSurrender);
                 },
                 
                 hide: function(page) {
-                    
+                    app.removeListener('surrender', _handleSurrender);
                 },
                 
                 destroy: function(page) {
                     _game.dispose();
                     _game = null;
+                    _players = null;
                 }
             }
             
@@ -487,6 +534,50 @@
                     page.querySelector('#go-lobby-btn').onclick = function() {
                         document.querySelector('#navigator')
                                 .pushPage('pages/lobby.html');
+                    };
+                },
+                
+                show: function(page) {
+                    
+                },
+                
+                hide: function(page) {
+                    
+                },
+                
+                destroy: function(page) {
+                    
+                }
+            }
+            
+        })(),
+
+        'game-end':(function(){
+            
+            var _getResultText = function(data) {
+                var result = data.result;
+                if (result === 'win_black') {
+                    return data.black + ' [Black] wins!';
+                } else if (result === 'win_white') {
+                    return data.white + ' [White] wins!';
+                } else if (result === 'draw') {
+                    return 'Draw!';
+                }
+                return 'Game Over!';
+            };
+           
+            return {
+                init: function(page) {
+                    
+                    page.querySelector('#result-text')
+                        .innerHTML = _getResultText(page.data);
+                        
+                    page.querySelector('#pgn-string')
+                        .innerHTML = page.data.pgn;
+                    
+                    page.querySelector('#return-btn').onclick = function() {
+                        document.querySelector('#navigator')
+                                .popPage();
                     };
                 },
                 
@@ -628,9 +719,11 @@
             var _sendInvite = function(player) {
                 app.cancelInvite();
                 app.sendInvite(player);
+                /*
                 var invited = document.querySelector('#invited-player');
                 invited.querySelector('.center').innerHTML = player.alias;
                 invited.style.display = 'inline';
+                */
             };
             
             var _sendCancelInvite = function() {
