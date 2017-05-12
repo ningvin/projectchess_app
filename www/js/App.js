@@ -53,7 +53,8 @@ function App() {
         'game_launch': [],
         'game_launch_cancel': [],
         'game_start': [],
-        'swap_colors': []
+        'swap_colors': [],
+        'surrender': []
     };
     
     //=====================================
@@ -183,11 +184,15 @@ function App() {
         
         s.on('game_invite', function(msg) {
             if (!_isState(STATES.LOBBY, STATES.LOGGED_IN,
-                    STATES.PLAYER_INVITED, STATES.PENDING_LAUNCH))
+                    STATES.PLAYER_INVITED, STATES.PENDING_LAUNCH)) {
+                console.log('discarding game invite: state');
                 return;
+            }
             
-            if (_receivedInvites.indexOf(msg.id) != -1)
+            if (_receivedInvites.indexOf(msg.id) != -1) {
+                console.log('discarding game invite: already');
                 return;
+            }
             
             _receivedInvites.push(msg.id);
             
@@ -206,6 +211,8 @@ function App() {
         });
         
         s.on('game_create', function(msg) {
+            _invited = null;
+            _receivedInvites = [];
             _opponent = {
                 id: msg.id,
                 alias: msg.alias
@@ -247,6 +254,13 @@ function App() {
                 return;
             
             _callListeners('move', msg);
+        });
+        
+        s.on('surrender', function(msg) {
+            
+            _state = (_user != null) ? STATES.LOGGED_IN : STATES.INITIAL;
+            
+            _callListeners('surrender', msg);
         });
         
         s.on('swap_colors', function(msg) {
@@ -493,6 +507,13 @@ function App() {
             return _user;
         },
         
+        surrender: function() {
+            _state = (_user != null) ? STATES.LOGGED_IN : STATES.INITIAL;
+            _socket.emit('surrender', {
+                id: _opponent.id
+            });
+        },
+        
         /*
         queryOpponent: function(callback) {
             _get(REST_URL + 'api/users/' + _opponent + '?token=' + _token,
@@ -536,6 +557,8 @@ function App() {
          */
         createGame: function() {
             _opponent = _invited;
+            _invited = null;
+            _receivedInvites = [];
             _isHost = true;
             _socket.emit('game_create', {
                 id: _opponent.id
